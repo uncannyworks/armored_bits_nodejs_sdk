@@ -703,6 +703,7 @@ var AbSdk = function() {
     return ret;
   }
 
+  // TODO: Document
   this.toggle_torso_state = function(state){
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(state, null, null, null, null);
@@ -710,6 +711,7 @@ var AbSdk = function() {
     client.write(message);
   }
 
+  // TODO: Document
   this.set_torso_rotation = function(pitch, yaw, speed){
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(null, null, pitch, yaw, speed);
@@ -717,6 +719,7 @@ var AbSdk = function() {
     client.write(message);    
   }
 
+  // TODO: Document
   this.recenter_torso = function(speed){
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(null, true, null, null, speed);
@@ -727,7 +730,7 @@ var AbSdk = function() {
   // TODO: Document
   this.fire_torso_weapon = function(weaponPosition) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, null, 1);
+    var p = new Proto(weaponPosition, null, 2);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
     client.write(message);
   }
@@ -751,7 +754,7 @@ var AbSdk = function() {
   // TODO: Document
   this.fire_arm_weapon = function(armPosition, weaponIndex){
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
-    var p = new Proto(armPosition, weaponIndex, null, 1);
+    var p = new Proto(armPosition, weaponIndex, null, 2);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
     client.write(message);
   }
