@@ -112,6 +112,16 @@ var AbSdk = function() {
     Inactive: 2
   }
 
+  /**
+   * Weapon fire states.
+   * @type {!Object.<string,number>}
+   * @const
+  */
+  this.WEAPON_FIRE_STATE = {
+    Idle: 1,
+    Fire: 2
+  }
+
   var protobufBuilder = protobuf.loadProtoFile(__dirname + "/slug.proto");
   var client = null;
   var configMessages = {};
@@ -728,9 +738,17 @@ var AbSdk = function() {
   }
 
   // TODO: Document
-  this.fire_torso_weapon = function(weaponPosition) {
+  this.fire_torso_weapon_start = function(weaponPosition) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, null, 2);
+    var p = new Proto(weaponPosition, null, WEAPON_FIRE_STATE.Fire);
+    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
+    client.write(message);
+  }
+
+  // TODO: Document
+  this.fire_torso_weapon_stop = function(weaponPosition) {
+    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
+    var p = new Proto(weaponPosition, null, WEAPON_FIRE_STATE.Idle);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
     client.write(message);
   }
@@ -752,9 +770,17 @@ var AbSdk = function() {
   }
 
   // TODO: Document
-  this.fire_arm_weapon = function(armPosition, weaponIndex){
+  this.fire_arm_weapon_start = function(armPosition, weaponIndex){
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
-    var p = new Proto(armPosition, weaponIndex, null, 2);
+    var p = new Proto(armPosition, weaponIndex, null, WEAPON_FIRE_STATE.Fire);
+    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
+    client.write(message);
+  }
+
+  // TODO: Document
+  this.fire_arm_weapon_stop = function(armPosition, weaponIndex){
+    var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
+    var p = new Proto(armPosition, weaponIndex, null, WEAPON_FIRE_STATE.Idle);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
     client.write(message);
   }
