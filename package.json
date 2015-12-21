@@ -1,0 +1,15 @@
+{
+  "name": "armored_bits_nodejs_sdk",
+  "version": "0.0.1",
+  "description": "Armored Bits NodeJS SDK",
+  "main": "index.js",
+  "dependencies": {
+    "protobufjs": "^4.1.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Uncanny Works LLC",
+  "license": "MIT"
+}
