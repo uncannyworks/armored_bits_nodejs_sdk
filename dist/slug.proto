@@ -244,6 +244,7 @@ message SlugActionLoginRequest {
 message ServerSlugGenericResponse {
   required int32 response = 1;
   optional int32 error    = 2;
+  required int32 msgId    = 3;
 }
 
 // Configuration
