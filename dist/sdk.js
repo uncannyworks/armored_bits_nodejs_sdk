@@ -119,7 +119,8 @@ var AbSdk = function() {
   */
   this.WEAPON_FIRE_STATE = {
     Idle: 1,
-    Fire: 2
+    Fire: 2,
+    Reload: 3
   }
 
   var protobufBuilder = protobuf.loadProtoFile(__dirname + "/slug.proto");
@@ -754,6 +755,14 @@ var AbSdk = function() {
   }
 
   // TODO: Document
+  this.reload_torso_weapon = function(weaponPosition) {
+    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
+    var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Reload);
+    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
+    client.write(message);
+  }
+
+  // TODO: Document
   this.toggle_torso_weapon_state = function(weaponPosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
     var p = new Proto(weaponPosition, state, null);
@@ -781,6 +790,14 @@ var AbSdk = function() {
   this.fire_arm_weapon_stop = function(armPosition, weaponIndex){
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
     var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Idle);
+    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
+    client.write(message);
+  }
+
+  // TODO: Document
+  this.reload_arm_weapon = function(armPosition, weaponIndex){
+    var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
+    var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Reload);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
     client.write(message);
   }
