@@ -181,7 +181,7 @@ message SlugQuerySensorMessage {
   required float fov                              = 6;
   required bool occlusion                         = 7;
   required float refreshRate                      = 8;
-  repeated int32 activeTargets                    = 9;
+  repeated ActiveTargetMessage activeTargets      = 9;
 }
 
 message SlugQueryStorageMessage {
@@ -331,4 +331,9 @@ message SlugGetQueryWarMachineResponse {
   required SlugQueryCockpitMessage cockpit     = 16;
   repeated SlugQueryArmMessage arms            = 17;
   repeated SlugQueryLegMessage legs            = 18;
+}
+
+message ActiveTargetMessage {
+  required int32 targetId               = 1;
+  required VectorMessage targetPosition = 2;
 }
