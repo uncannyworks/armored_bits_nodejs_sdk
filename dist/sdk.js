@@ -344,6 +344,16 @@ var AbSdk = function() {
    */
   this.on_connection_closed = function() {};
   /**
+   * Triggers on TCP connection timeout.
+   * Override with desired behavior.
+   */
+  this.on_connection_timeout = function() {};
+  /**
+   * Triggers on TCP connection end.
+   * Override with desired behavior.
+   */
+  this.on_connection_end = function() {};
+  /**
    * Triggers on TCP connection error.
    * Override with desired behavior.
    * @param {Object} error - a 'net' module Error object.
@@ -456,9 +466,17 @@ var AbSdk = function() {
       if (sdk.on_connection_closed) sdk.on_connection_closed();
     });
 
+    client.on('end', function() {
+      if (sdk.on_connection_end) sdk.on_connection_end();
+    });
+
     client.on('error', function(err) {
       if (sdk.on_connection_error) sdk.on_connection_error(err);
     });
+
+    client.on('timeout', function() {
+      if (sdk.on_connection_timeout) sdk.on_connection_timeout();
+    }
   }
 
   /**
