@@ -476,7 +476,7 @@ var AbSdk = function() {
 
     client.on('timeout', function() {
       if (sdk.on_connection_timeout) sdk.on_connection_timeout();
-    }
+    });
   }
 
   /**
