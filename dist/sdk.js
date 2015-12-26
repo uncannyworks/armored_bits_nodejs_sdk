@@ -1,4 +1,4 @@
-var net = require('net');
+var net = require("net");
 var protobuf = require("protobufjs");
 
 /**
@@ -6,6 +6,51 @@ var protobuf = require("protobufjs");
  * @constructor
  */
 var AbSdk = function() {
+  var self = this;
+
+  /**
+   * Message Queue to manage outgoing TCP writes.
+  */
+  var MessageQueue = function() {
+    var head = null;
+    var tail = null;
+
+    this.pushMessage = function(message) {
+      var node = {
+        'next': null,
+        'message': message
+      };
+      if (head == null) { // New list.
+        head = node;
+        tail = node;
+        return;
+      }
+      if (tail != null) {
+        tail.next = node;
+        tail = node;
+      }
+    };
+
+    this.popMessage = function() {
+      if (head == null) return null;
+
+      var ret = head;
+      head = head.next;
+      ret.next = null;
+      return ret.message;
+    };
+
+    this.peekMessage = function() {
+      if (head == null) return null;
+      return head.message;
+    };
+
+    this.hasMessages = function() {
+      return head != null;
+    };
+  };
+  var messageQueue = new MessageQueue();
+  var canSendMessage = true; // This flag lets us know when to flush the queue to the stream.
 
   /**
    * Message Codes.
@@ -135,16 +180,16 @@ var AbSdk = function() {
 
   var internalWarMachine;
 
-  var error_code_to_string = function(code, sdk) {
-    for (var i in sdk.ERROR_CODES) {
-      if (sdk.ERROR_CODES[i] == code) {
+  var error_code_to_string = function(code) {
+    for (var i in self.ERROR_CODES) {
+      if (self.ERROR_CODES[i] == code) {
         return i;
       }
     }
   }
 
-  var build_message = function(code, message) {
-    var buff = new protobuf.ByteBuffer();
+  var build_message = function(code, message) {    
+    var buff = new protobuf.ByteBuffer(0);
     if (message) {
       buff = message.encode();
       var len = buff.toArrayBuffer().byteLength;
@@ -175,44 +220,61 @@ var AbSdk = function() {
     return new Buffer(buff.toArrayBuffer());
   }
 
-  var _digest = function(byteArray, sdk) {
+  var _send_message = function(message) {
+    messageQueue.pushMessage(message);
+  }
+
+  var _next_message = function() {
+    if (messageQueue.hasMessages()) {
+      if(self.on_message_sent) self.on_message_sent(messageQueue.peekMessage());
+      client.write(messageQueue.popMessage(), null, _next_message);
+    } else
+      setTimeout(_next_message, 0);
+  }
+  setTimeout(_next_message, 0);
+
+  var _digest = function(byteArray) {
     switch (byteArray[0]) {
-    case sdk.MESSAGE_CODES.ServerStateMessage:
-      // Currently we don't need to do anything based on the server state.
+    case self.MESSAGE_CODES.ServerStateMessage:
+      var Proto = protobufBuilder.build("ServerStateMessage");
+      var message = Proto.decode(byteArray.slice(3));
+      if (self.on_message_received) self.on_message_received(byteArray[0], message);
       break;
-    case sdk.MESSAGE_CODES.ServerWorldStateMessage:
+    case self.MESSAGE_CODES.ServerWorldStateMessage:
       var Proto = protobufBuilder.build("ServerWorldStateMessage");
       var message = Proto.decode(byteArray.slice(3));
-      if (message.worldState == sdk.WORLD_STATE_CODES.ConfigurationPhase) {
-        if (sdk.on_configuration_phase_start) sdk.on_configuration_phase_start();
+      if (message.worldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
+        if (self.on_configuration_phase_start) self.on_configuration_phase_start();
       }
-      if (message.worldState == sdk.WORLD_STATE_CODES.StartupPhase) {
-        if (currentWorldState == sdk.WORLD_STATE_CODES.ConfigurationPhase) {
+      if (message.worldState == self.WORLD_STATE_CODES.StartupPhase) {
+        if (currentWorldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
           configMessages = {}; // Clear Configuration Messages
-          if (sdk.on_configuration_phase_end) sdk.on_configuration_phase_end();
-          if (sdk.on_startup_phase_start) sdk.on_startup_phase_start();
+          if (self.on_configuration_phase_end) self.on_configuration_phase_end();
+          if (self.on_startup_phase_start) self.on_startup_phase_start();
         }
       }
-      if (message.worldState == sdk.WORLD_STATE_CODES.GamePhase) {
-        if (currentWorldState == sdk.WORLD_STATE_CODES.StartupPhase) {
-          if (sdk.on_startup_phase_end) sdk.on_startup_phase_end();
-          if (sdk.on_game_phase_start) sdk.on_game_phase_start();
+      if (message.worldState == self.WORLD_STATE_CODES.GamePhase) {
+        if (currentWorldState == self.WORLD_STATE_CODES.StartupPhase) {
+          if (self.on_startup_phase_end) self.on_startup_phase_end();
+          if (self.on_game_phase_start) self.on_game_phase_start();
         }
       }
-      if (message.worldState == sdk.WORLD_STATE_CODES.GameOverPhase) {
-        if (currentWorldState == sdk.WORLD_STATE_CODES.GamePhase) {
-          if (sdk.on_game_phase_end) sdk.on_game_phase_end();
+      if (message.worldState == self.WORLD_STATE_CODES.GameOverPhase) {
+        if (currentWorldState == self.WORLD_STATE_CODES.GamePhase) {
+          if (self.on_game_phase_end) self.on_game_phase_end();
         }
       }
 
       currentWorldState = message.worldState;
+      if (self.on_message_received) self.on_message_received(byteArray[0], message);
       break;
-    case sdk.MESSAGE_CODES.SlugActionLoginResponse:
-      currentWorldState = sdk.WORLD_STATE_CODES.Initializing;
-      if (sdk.on_connection_start) sdk.on_connection_start();
+    case self.MESSAGE_CODES.SlugActionLoginResponse:
+      currentWorldState = self.WORLD_STATE_CODES.Initializing;
+      if (self.on_connection_start) self.on_connection_start();
+      if (self.on_message_received) self.on_message_received(byteArray[0], {});
       break;
 
-    case sdk.MESSAGE_CODES.ServerSlugGenericResponse:
+    case self.MESSAGE_CODES.ServerSlugGenericResponse:
       var Proto = protobufBuilder.build("ServerSlugGenericResponse");
       var message = Proto.decode(byteArray.slice(3));
 
@@ -220,118 +282,136 @@ var AbSdk = function() {
        * the current world state and the last message sent.
        */
       switch (currentWorldState) {
-      case sdk.WORLD_STATE_CODES.ConfigurationPhase:
+      case self.WORLD_STATE_CODES.ConfigurationPhase:
         // We don't want to do anything if this response is for the Done message.
-        if (message.msgId != sdk.MESSAGE_CODES.SlugConfigureDoneRequest) {
-          if (message.error == sdk.ERROR_CODES.NONE) {
+        if (message.msgId != self.MESSAGE_CODES.SlugConfigureDoneRequest) {
+          if (message.error == self.ERROR_CODES.NONE) {
             if (nextStep) {
-              nextStep(sdk)
-            } else if (sdk.on_configuration_commit_finished) {
-              sdk.on_configuration_commit_finished(errorList);
+              nextStep()
+            } else if (self.on_configuration_commit_finished) {
+              self.on_configuration_commit_finished(errorList);
             }
           }
-          if (message.error != sdk.ERROR_CODES.NONE) {
+          if (message.error != self.ERROR_CODES.NONE) {
             errorList.push({
               'response_code': message.response,
               'error_code': message.error,
-              'error_string': error_code_to_string(message.error, sdk)
+              'error_string': error_code_to_string(message.error)
             });
             if (nextStep) {
-              nextStep(sdk);
-            } else if (sdk.on_configuration_commit_finished) {
-              sdk.on_configuration_commit_finished(errorList);
+              nextStep();
+            } else if (self.on_configuration_commit_finished) {
+              self.on_configuration_commit_finished(errorList);
             }
           }
         } else {
-          sdk.log("Configuration done message acknowledged.");
+          self.log("Configuration done message acknowledged.");
         }
         break;
-      case sdk.WORLD_STATE_CODES.GamePhase:
-        if (message.error != sdk.ERROR_CODES.NONE) {
-          sdk.log("ERROR MID (" + message.msgId + ") -- " + error_code_to_string(message.error, sdk));
+      case self.WORLD_STATE_CODES.GamePhase:
+        if (message.error != self.ERROR_CODES.NONE) {
+          self.log("ERROR MID (" + message.msgId + ") -- " + error_code_to_string(message.error));
         }
         break;
       }
+      if (self.on_message_received) self.on_message_received(byteArray[0], message);
       break;
 
-    case sdk.MESSAGE_CODES.SlugGetQueryWarMachineResponse:
+    case self.MESSAGE_CODES.SlugGetQueryWarMachineResponse:
       var Proto = protobufBuilder.build("SlugGetQueryWarMachineResponse");
       var message = Proto.decode(byteArray.slice(3));
       internalWarMachine = message;
-      if (queryWarMachineCallback) queryWarMachineCallback(message)
+      if (queryWarMachineCallback) queryWarMachineCallback(message);
+      if (self.on_message_received) self.on_message_received(byteArray[0], message);
       break;
     default:
-      sdk.log("(WARN) Unrecognized Message: " + byteArray[0]);
+      self.log("(WARN) Unrecognized Message: " + byteArray[0]);
+      if (self.on_message_received) self.on_message_received(byteArray[0], {});
     }
   }
 
-  var _authenticate = function(username, password, sdk) {
+  var _authenticate = function(username, password) {
     var Proto = protobufBuilder.build("SlugActionLoginRequest");
     var authMessage = new Proto("gameid", "slugid", "UserName");
 
-    var message = build_message(sdk.MESSAGE_CODES.SlugActionLoginRequest, authMessage);
+    var message = build_message(self.MESSAGE_CODES.SlugActionLoginRequest, authMessage);
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _commit_chassis = function(sdk) {
-    sdk.log("Committing Chassis");
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureChassisRequest, configMessages.SlugConfigureChassisRequest);
+  var _commit_chassis = function() {
+    self.log("Committing Chassis");
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureChassisRequest, configMessages.SlugConfigureChassisRequest);
     nextStep = _commit_torso;
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _commit_torso = function(sdk) {
-    sdk.log("Committing Torso");
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureTorsoRequest, configMessages.SlugConfigureTorsoRequest);
+  var _commit_torso = function() {
+    self.log("Committing Torso");
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureTorsoRequest, configMessages.SlugConfigureTorsoRequest);
     nextStep = _commit_cockpit;
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _commit_cockpit = function(sdk) {
-    sdk.log("Committing Cockpit");
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureCockpitRequest, configMessages.SlugConfigureCockpitRequest);
+  var _commit_cockpit = function() {
+    self.log("Committing Cockpit");
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureCockpitRequest, configMessages.SlugConfigureCockpitRequest);
     nextStep = _commit_arms;
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _commit_arms = function(sdk) {
-    sdk.log("Committing Arms");
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureArmsRequest, configMessages.SlugConfigureArmsRequest);
+  var _commit_arms = function() {
+    self.log("Committing Arms");
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureArmsRequest, configMessages.SlugConfigureArmsRequest);
     nextStep = _commit_legs;
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _commit_legs = function(sdk) {
-    sdk.log("Committing Legs");
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureLegsRequest, configMessages.SlugConfigureLegsRequest);
+  var _commit_legs = function() {
+    self.log("Committing Legs");
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureLegsRequest, configMessages.SlugConfigureLegsRequest);
     nextStep = null;
 
-    client.write(message);
+    _send_message(message);
   }
 
   var _send_configuration_complete_message = function(sdk, useDefault) {
     var Proto = protobufBuilder.build("SlugConfigureDoneRequest");
     configMessages.SlugConfigureDoneRequest = new Proto(useDefault);
     if (useDefault) {
-      sdk.log("Send configuration complete message. Using default war machine.");
+      self.log("Send configuration complete message. Using default war machine.");
     } else {
-      sdk.log("Send configuration complete message.");
+      self.log("Send configuration complete message.");
     }
-    var message = build_message(sdk.MESSAGE_CODES.SlugConfigureDoneRequest, configMessages.SlugConfigureDoneRequest);
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureDoneRequest, configMessages.SlugConfigureDoneRequest);
     nextStep = null;
 
-    client.write(message);
+    _send_message(message);
   }
 
-  var _query_war_machine = function(sdk) {
-    var message = build_message(sdk.MESSAGE_CODES.SlugGetQueryWarMachineRequest);
-    client.write(message);
+  var _query_war_machine = function() {
+    var message = build_message(self.MESSAGE_CODES.SlugGetQueryWarMachineRequest);
+    _send_message(message);
   }
+
+  /**
+   * Triggers when the client receives ANY message.
+   * Override with desired behavior.
+   * @param {Number} code - the message code.
+   * @param {Object} message - the message JSON.
+   */
+  this.on_message_received = function(code, message) {}
+
+  /**
+   * Triggers when the client sends ANY message.
+   * Override with desired behavior.
+   * @param {byte[]} message - the message JSON.
+   */
+  this.on_message_sent = function(message) {}
 
   /**
    * Triggers on authenticated connection.
@@ -411,7 +491,11 @@ var AbSdk = function() {
     var sdk = this;
 
     client = new net.Socket();
-    client.connect(port, ip);
+    client.buffer = new Buffer([]);
+
+    client.connect(port, ip, function(){
+      client.setNoDelay(true);
+    });
 
     client.on('data', function(data) {
       if (client.messageBuffer && client.messageBuffer.length > 0) {
@@ -439,8 +523,7 @@ var AbSdk = function() {
         }
 
         var chunk = client.messageBuffer.slice(0, 3 + len);
-        sdk.log("Handling MID: " + chunk[0] + " Payload Length: " + len);
-        _digest(chunk, sdk);
+        _digest(chunk);
 
         // Find next message position.
         var nextMessageStart = 3 + len;
@@ -459,23 +542,23 @@ var AbSdk = function() {
     });
 
     client.on('connect', function() {
-      _authenticate(username, password, sdk);
+      _authenticate(username, password);
     });
 
     client.on('close', function() {
-      if (sdk.on_connection_closed) sdk.on_connection_closed();
+      if (self.on_connection_closed) self.on_connection_closed();
     });
 
     client.on('end', function() {
-      if (sdk.on_connection_end) sdk.on_connection_end();
+      if (self.on_connection_end) self.on_connection_end();
     });
 
     client.on('error', function(err) {
-      if (sdk.on_connection_error) sdk.on_connection_error(err);
+      if (self.on_connection_error) self.on_connection_error(err);
     });
 
     client.on('timeout', function() {
-      if (sdk.on_connection_timeout) sdk.on_connection_timeout();
+      if (self.on_connection_timeout) self.on_connection_timeout();
     });
   }
 
@@ -701,13 +784,14 @@ var AbSdk = function() {
     var ret = [];
     try {
       var arm = null;
-      for(var i = 0; i<rawState.arms.length; i++){
-        if(rawState.arms[i].index == armPosition){
+      for (var i = 0; i < rawState.arms.length; i++) {
+        if (rawState.arms[i].index == armPosition) {
           arm = rawState.arms[i];
           break;
         }
-      };
-      if(arm){
+      }
+      ;
+      if (arm) {
         arm.weapons.forEach(function(wep) {
           ret.push(wep);
         });
@@ -733,27 +817,27 @@ var AbSdk = function() {
   }
 
   // TODO: Document
-  this.toggle_torso_state = function(state){
+  this.toggle_torso_state = function(state) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(state, null, null, null, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.set_torso_rotation = function(pitch, yaw, speed){
+  this.set_torso_rotation = function(pitch, yaw, speed) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(null, null, pitch, yaw, speed);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    client.write(message);    
+    _send_message(message);
   }
 
   // TODO: Document
-  this.recenter_torso = function(speed){
+  this.recenter_torso = function(speed) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
     var p = new Proto(null, true, null, null, speed);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    client.write(message);    
+    _send_message(message);
   }
 
   // TODO: Document
@@ -761,7 +845,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
     var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Fire);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
@@ -769,7 +853,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
     var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Idle);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
@@ -777,7 +861,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
     var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Reload);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
@@ -785,47 +869,47 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
     var p = new Proto(weaponPosition, state, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_torso_counter_measure_state = function(counterMeasurePosition, state){
+  this.toggle_torso_counter_measure_state = function(counterMeasurePosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitTorsoCounterMeasureRequest");
     var p = new Proto(counterMeasurePosition, state);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoCounterMeasureRequest, p);
-    client.write(message); 
+    _send_message(message);
   }
 
   // TODO: Document
-  this.fire_arm_weapon_start = function(armPosition, weaponIndex){
+  this.fire_arm_weapon_start = function(armPosition, weaponIndex) {
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
     var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Fire);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.fire_arm_weapon_stop = function(armPosition, weaponIndex){
+  this.fire_arm_weapon_stop = function(armPosition, weaponIndex) {
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
     var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Idle);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.reload_arm_weapon = function(armPosition, weaponIndex){
+  this.reload_arm_weapon = function(armPosition, weaponIndex) {
     var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
     var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Reload);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_arm_counter_measure_state = function(armPosition, counterMeasurePosition, state){
+  this.toggle_arm_counter_measure_state = function(armPosition, counterMeasurePosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitArmCounterMeasureRequest");
     var p = new Proto(armPosition, counterMeasurePosition, state);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmCounterMeasureRequest, p);
-    client.write(message); 
+    _send_message(message);
   }
 
   // TODO: Document
@@ -833,7 +917,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitEngineRequest");
     var p = new Proto(null, speed);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitEngineRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
@@ -841,7 +925,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitEngineRequest");
     var p = new Proto(state, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitEngineRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
@@ -849,55 +933,55 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugSetCommitChassisRequest");
     var p = new Proto(null, angle);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitChassisRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_chassis_state = function(state){
+  this.toggle_chassis_state = function(state) {
     var Proto = protobufBuilder.build("SlugSetCommitChassisRequest");
     var p = new Proto(state, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitChassisRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.send_comm = function(commPosition, channel, byteData){
+  this.send_comm = function(commPosition, channel, byteData) {
     var Proto = protobufBuilder.build("SlugSetCommitCockpitCommunicationRequest");
     var p = new Proto(commPosition, null, channel, byteData);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitCommunicationRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_comm_state = function(commPosition, state){
+  this.toggle_comm_state = function(commPosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitCockpitCommunicationRequest");
     var p = new Proto(commPosition, state, null, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitCommunicationRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.set_computer_target_lock = function(computerPosition, targetIndex){
+  this.set_computer_target_lock = function(computerPosition, targetIndex) {
     var Proto = protobufBuilder.build("SlugSetCommitCockpitComputerRequest");
     var p = new Proto(computerPosition, null, targetIndex);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitComputerRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_computer_state = function(computerPosition, state){
+  this.toggle_computer_state = function(computerPosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitCockpitComputerRequest");
     var p = new Proto(computerPosition, state, null);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitComputerRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 
   // TODO: Document
-  this.toggle_cockpit_sensor_state = function(sensorPosition, state){
+  this.toggle_cockpit_sensor_state = function(sensorPosition, state) {
     var Proto = protobufBuilder.build("SlugSetCommitCockpitSensorRequest");
     var p = new Proto(sensorPosition, state);
     var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitSensorRequest, p);
-    client.write(message);
+    _send_message(message);
   }
 };
 
