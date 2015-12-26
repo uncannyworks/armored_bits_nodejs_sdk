@@ -3,13 +3,22 @@
   "version": "0.0.1",
   "description": "Armored Bits NodeJS SDK",
   "main": "index.js",
+  "preferGlobal": false,
   "dependencies": {
     "protobufjs": "^4.1.3"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node ./dist/test.js"
   },
   "author": "Uncanny Works LLC",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uncannyworks/armored_bits_nodejs_sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uncannyworks/armored_bits_nodejs_sdk/issues"
+  },
+  "homepage": "https://github.com/uncannyworks/armored_bits_nodejs_sdk#readme"
 }
