@@ -60,25 +60,19 @@ var AbSdk = function() {
   this.MESSAGE_CODES = {
     ServerStateMessage: 1,
     ServerWorldStateMessage: 2,
-    SlugConfigureChassisRequest: 20,
-    SlugConfigureCockpitRequest: 22,
-    SlugConfigureTorsoRequest: 24,
-    SlugConfigureArmsRequest: 26,
-    SlugConfigureLegsRequest: 28,
+    ServerCommunicationMessage: 5,
+    SlugConfigureMechRequest: 20,
     SlugConfigureDoneRequest: 30,
-    SlugGetQueryWarMachineRequest: 50,
-    SlugGetQueryWarMachineResponse: 51,
-    SlugSetCommitArmCounterMeasureRequest: 60,
-    SlugSetCommitArmWeaponRequest: 62,
-    SlugSetCommitChassisRequest: 64,
-    SlugSetCommitCockpitCommunicationRequest: 66,
-    SlugSetCommitCockpitComputerRequest: 68,
-    SlugSetCommitCockpitCounterMeasureRequest: 70,
-    SlugSetCommitCockpitSensorRequest: 72,
-    SlugSetCommitEngineRequest: 74,
-    SlugSetCommitTorsoActuatorRequest: 76,
-    SlugSetCommitTorsoCounterMeasureRequest: 78,
-    SlugSetCommitTorsoWeaponRequest: 80,
+    SlugQueryMechRequest: 50,
+    SlugQueryMechResponse: 51,
+    SlugCommitCounterMeasureMessage: 60,
+    SlugCommitWeaponRequest: 62,
+    SlugCommitMechRequest: 64,
+    SlugCommitCommunicationRequest: 66,
+    SlugCommitComputerRequest: 68,
+    SlugCommitSensorRequest: 70,
+    SlugCommitEngineRequest: 72,
+    SlugCommitActuatorRequest: 74,
     ServerSlugGenericResponse: 101,
     SlugActionLoginRequest: 102,
     SlugActionLoginResponse: 103
@@ -158,6 +152,20 @@ var AbSdk = function() {
   }
 
   /**
+   * Component location types.
+   * @type {!Object.<string,number>}
+   * @const
+  */
+  this.LOCATION_TYPE = {
+    None: 0,
+    Arm: 1,
+    Cockpit: 2,
+    Leg: 3,
+    Torso: 4,
+    Weapon: 5    
+  }
+
+  /**
    * Weapon fire states.
    * @type {!Object.<string,number>}
    * @const
@@ -170,9 +178,6 @@ var AbSdk = function() {
 
   var protobufBuilder = protobuf.loadProtoFile(__dirname + "/slug.proto");
   var client = null;
-  var configMessages = {};
-  var nextStep = null; // Function pointer to the next step in whatever workflow is being performed.
-  var errorList = [];
   var currentWorldState = this.WORLD_STATE_CODES.Initializing;
   var queryWarMachineCallback = null;
 
@@ -188,7 +193,15 @@ var AbSdk = function() {
     }
   }
 
-  var build_message = function(code, message) {    
+  var message_code_to_string = function(code) {
+    for (var i in self.MESSAGE_CODES) {
+      if (self.MESSAGE_CODES[i] == code) {
+        return i;
+      }
+    }
+  }
+
+  var build_message = function(code, message) {
     var buff = new protobuf.ByteBuffer(0);
     if (message) {
       buff = message.encode();
@@ -226,7 +239,7 @@ var AbSdk = function() {
 
   var _next_message = function() {
     if (messageQueue.hasMessages()) {
-      if(self.on_message_sent) self.on_message_sent(messageQueue.peekMessage());
+      if (self.on_message_sent) self.on_message_sent(messageQueue.peekMessage());
       client.write(messageQueue.popMessage(), null, _next_message);
     } else
       setTimeout(_next_message, 0);
@@ -234,99 +247,87 @@ var AbSdk = function() {
   setTimeout(_next_message, 0);
 
   var _digest = function(byteArray) {
-    switch (byteArray[0]) {
-    case self.MESSAGE_CODES.ServerStateMessage:
-      var Proto = protobufBuilder.build("ServerStateMessage");
-      var message = Proto.decode(byteArray.slice(3));
-      if (self.on_message_received) self.on_message_received(byteArray[0], message);
-      break;
-    case self.MESSAGE_CODES.ServerWorldStateMessage:
-      var Proto = protobufBuilder.build("ServerWorldStateMessage");
-      var message = Proto.decode(byteArray.slice(3));
-      if (message.worldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
-        if (self.on_configuration_phase_start) self.on_configuration_phase_start();
-      }
-      if (message.worldState == self.WORLD_STATE_CODES.StartupPhase) {
-        if (currentWorldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
-          configMessages = {}; // Clear Configuration Messages
-          if (self.on_configuration_phase_end) self.on_configuration_phase_end();
-          if (self.on_startup_phase_start) self.on_startup_phase_start();
-        }
-      }
-      if (message.worldState == self.WORLD_STATE_CODES.GamePhase) {
-        if (currentWorldState == self.WORLD_STATE_CODES.StartupPhase) {
-          if (self.on_startup_phase_end) self.on_startup_phase_end();
-          if (self.on_game_phase_start) self.on_game_phase_start();
-        }
-      }
-      if (message.worldState == self.WORLD_STATE_CODES.GameOverPhase) {
-        if (currentWorldState == self.WORLD_STATE_CODES.GamePhase) {
-          if (self.on_game_phase_end) self.on_game_phase_end();
-        }
-      }
+    try {
+      switch (byteArray[0]) {
+      case self.MESSAGE_CODES.ServerStateMessage:
+        var Proto = protobufBuilder.build("ServerStateMessage");
+        var message = Proto.decode(byteArray.slice(3));
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
+        break;
 
-      currentWorldState = message.worldState;
-      if (self.on_message_received) self.on_message_received(byteArray[0], message);
-      break;
-    case self.MESSAGE_CODES.SlugActionLoginResponse:
-      currentWorldState = self.WORLD_STATE_CODES.Initializing;
-      if (self.on_connection_start) self.on_connection_start();
-      if (self.on_message_received) self.on_message_received(byteArray[0], {});
-      break;
-
-    case self.MESSAGE_CODES.ServerSlugGenericResponse:
-      var Proto = protobufBuilder.build("ServerSlugGenericResponse");
-      var message = Proto.decode(byteArray.slice(3));
-
-      /* What we do with generic responses is determined by a combination of
-       * the current world state and the last message sent.
-       */
-      switch (currentWorldState) {
-      case self.WORLD_STATE_CODES.ConfigurationPhase:
-        // We don't want to do anything if this response is for the Done message.
-        if (message.msgId != self.MESSAGE_CODES.SlugConfigureDoneRequest) {
-          if (message.error == self.ERROR_CODES.NONE) {
-            if (nextStep) {
-              nextStep()
-            } else if (self.on_configuration_commit_finished) {
-              self.on_configuration_commit_finished(errorList);
-            }
+      case self.MESSAGE_CODES.ServerWorldStateMessage:
+        var Proto = protobufBuilder.build("ServerWorldStateMessage");
+        var message = Proto.decode(byteArray.slice(3));
+        if (message.worldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
+          if (self.on_configuration_phase_start) self.on_configuration_phase_start();
+        }
+        if (message.worldState == self.WORLD_STATE_CODES.StartupPhase) {
+          if (currentWorldState == self.WORLD_STATE_CODES.ConfigurationPhase) {
+            if (self.on_configuration_phase_end) self.on_configuration_phase_end();
+            if (self.on_startup_phase_start) self.on_startup_phase_start();
           }
+        }
+        if (message.worldState == self.WORLD_STATE_CODES.GamePhase) {
+          if (currentWorldState == self.WORLD_STATE_CODES.StartupPhase) {
+            if (self.on_startup_phase_end) self.on_startup_phase_end();
+            if (self.on_game_phase_start) self.on_game_phase_start();
+          }
+        }
+        if (message.worldState == self.WORLD_STATE_CODES.GameOverPhase) {
+          if (currentWorldState == self.WORLD_STATE_CODES.GamePhase) {
+            if (self.on_game_phase_end) self.on_game_phase_end();
+          }
+        }
+        currentWorldState = message.worldState;
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
+        break;
+
+      case self.MESSAGE_CODES.SlugActionLoginResponse:
+        if (self.on_connection_start) self.on_connection_start();
+        if (self.on_message_received) self.on_message_received(byteArray[0], {});
+        break;
+
+      case self.MESSAGE_CODES.ServerSlugGenericResponse:
+        var Proto = protobufBuilder.build("ServerSlugGenericResponse");
+        var message = Proto.decode(byteArray.slice(3));
+
+        /* What we do with generic responses is determined by a combination of
+         * the current world state and the request it is responding to.
+         */
+        switch (currentWorldState) {
+        case self.WORLD_STATE_CODES.ConfigurationPhase:
+          switch (message.msgId) {
+          case self.MESSAGE_CODES.SlugConfigureDoneRequest:
+            self.log("Configuration done message acknowledged.");
+            break;
+
+          case self.MESSAGE_CODES.SlugConfigureMechRequest:
+            if (self.on_configuration_commit_finished) self.on_configuration_commit_finished(message.response, message.error, error_code_to_string(message.error));
+            break;
+          }
+        case self.WORLD_STATE_CODES.GamePhase:
           if (message.error != self.ERROR_CODES.NONE) {
-            errorList.push({
-              'response_code': message.response,
-              'error_code': message.error,
-              'error_string': error_code_to_string(message.error)
-            });
-            if (nextStep) {
-              nextStep();
-            } else if (self.on_configuration_commit_finished) {
-              self.on_configuration_commit_finished(errorList);
-            }
+            self.log("ERROR MID (" + message.msgId + ") -- " + error_code_to_string(message.error));
           }
-        } else {
-          self.log("Configuration done message acknowledged.");
+          break;
         }
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
         break;
-      case self.WORLD_STATE_CODES.GamePhase:
-        if (message.error != self.ERROR_CODES.NONE) {
-          self.log("ERROR MID (" + message.msgId + ") -- " + error_code_to_string(message.error));
-        }
-        break;
-      }
-      if (self.on_message_received) self.on_message_received(byteArray[0], message);
-      break;
 
-    case self.MESSAGE_CODES.SlugGetQueryWarMachineResponse:
-      var Proto = protobufBuilder.build("SlugGetQueryWarMachineResponse");
-      var message = Proto.decode(byteArray.slice(3));
-      internalWarMachine = message;
-      if (queryWarMachineCallback) queryWarMachineCallback(message);
-      if (self.on_message_received) self.on_message_received(byteArray[0], message);
-      break;
-    default:
-      self.log("(WARN) Unrecognized Message: " + byteArray[0]);
-      if (self.on_message_received) self.on_message_received(byteArray[0], {});
+      case self.MESSAGE_CODES.SlugQueryMechResponse:
+        var Proto = protobufBuilder.build("SlugQueryMechResponse");
+        var message = Proto.decode(byteArray.slice(3));
+        internalWarMachine = message;
+        if (queryWarMachineCallback) queryWarMachineCallback(message);
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
+        break;
+
+      default:
+        self.log("(WARN) Unrecognized Message: " + byteArray[0]);
+        if (self.on_message_received) self.on_message_received(byteArray[0], {});
+      }
+    } catch ( err ) {
+      console.log(err)
     }
   }
 
@@ -339,70 +340,29 @@ var AbSdk = function() {
     _send_message(message);
   }
 
-  var _commit_chassis = function() {
-    self.log("Committing Chassis");
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureChassisRequest, configMessages.SlugConfigureChassisRequest);
-    nextStep = _commit_torso;
-
-    _send_message(message);
-  }
-
-  var _commit_torso = function() {
-    self.log("Committing Torso");
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureTorsoRequest, configMessages.SlugConfigureTorsoRequest);
-    nextStep = _commit_cockpit;
-
-    _send_message(message);
-  }
-
-  var _commit_cockpit = function() {
-    self.log("Committing Cockpit");
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureCockpitRequest, configMessages.SlugConfigureCockpitRequest);
-    nextStep = _commit_arms;
-
-    _send_message(message);
-  }
-
-  var _commit_arms = function() {
-    self.log("Committing Arms");
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureArmsRequest, configMessages.SlugConfigureArmsRequest);
-    nextStep = _commit_legs;
-
-    _send_message(message);
-  }
-
-  var _commit_legs = function() {
-    self.log("Committing Legs");
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureLegsRequest, configMessages.SlugConfigureLegsRequest);
-    nextStep = null;
-
-    _send_message(message);
-  }
-
   var _send_configuration_complete_message = function(sdk, useDefault) {
     var Proto = protobufBuilder.build("SlugConfigureDoneRequest");
-    configMessages.SlugConfigureDoneRequest = new Proto(useDefault);
+    var configureDoneRequest = new Proto(useDefault);
     if (useDefault) {
       self.log("Send configuration complete message. Using default war machine.");
     } else {
       self.log("Send configuration complete message.");
     }
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureDoneRequest, configMessages.SlugConfigureDoneRequest);
-    nextStep = null;
+    var message = build_message(self.MESSAGE_CODES.SlugConfigureDoneRequest, configureDoneRequest);
 
     _send_message(message);
   }
 
   var _query_war_machine = function() {
-    var message = build_message(self.MESSAGE_CODES.SlugGetQueryWarMachineRequest);
+    var message = build_message(self.MESSAGE_CODES.SlugQueryMechRequest);
     _send_message(message);
   }
 
   /**
    * Triggers when the client receives ANY message.
    * Override with desired behavior.
-   * @param {Number} code - the message code.
-   * @param {Object} message - the message JSON.
+   * @param {number} code - the message code.
+   * @param {object} message - the message JSON.
    */
   this.on_message_received = function(code, message) {}
 
@@ -473,7 +433,7 @@ var AbSdk = function() {
   /**
   * Triggers on Configuration Commit Finished.
   * Override with desired behavior.
-  * @param {Object[]} errorsArray
+  * @param {object[]} errorsArray
   * @param {number} errorsArray[].response_code
   * @param {number} errorsArray[].error_code
   * @param {string} errorsArray[].error_string
@@ -482,10 +442,10 @@ var AbSdk = function() {
 
   /**
    * Creates TCP Connection   
-   * @param {String} port - Connection port.
-   * @param {String} ip - Connection IP Address.
-   * @param {String} username - Authentication User Name.
-   * @param {String} password - Authentication Password.
+   * @param {string} port - Connection port.
+   * @param {string} ip - Connection IP Address.
+   * @param {string} username - Authentication User Name.
+   * @param {string} password - Authentication Password.
    */
   this.connect = function(port, ip, username, password) {
     var sdk = this;
@@ -493,7 +453,7 @@ var AbSdk = function() {
     client = new net.Socket();
     client.buffer = new Buffer([]);
 
-    client.connect(port, ip, function(){
+    client.connect(port, ip, function() {
       client.setNoDelay(true);
     });
 
@@ -563,64 +523,71 @@ var AbSdk = function() {
   }
 
   /**
-   * Stores chassis configuration.
-   * @param {String} chassisModel - Chassis model number.
-   * @param {String} reactorModel - Reactor model number.
-   * @param {String} gyroModel - Gyroscope model number.
-   * @param {String} capacitorModel - Capacitor model number.
+   * Builds mech configuration protobuf request.
+   * @param {string} chassisModel - Chassis model number.
+   * @param {string} capacitorModel - Capacitor model number. Use "" for none.
+   * @param {string} gyroModel - Gyroscope model number.   
+   * @param {string} reactorModel - Reactor model number.
+   * @param {object} configureTorsoMessage - Built with sdk.build_config_torso_message
+   * @param {object} configureCockpitMessage - Built with sdk.build_config_cockpit_message
+   * @param {object[]} configureArmMessages - Array of messages built with sdk.build_config_arm_messages
+   * @param {object[]} configureLegMessages - Array of messages built with sdk.build_config_leg_messages
+   * @returns {object} SlugConfigureMechRequest protobuf message
    */
-  this.configure_chassis = function(chassisModel, reactorModel, gyroModel, capacitorModel) {
-    var Proto = protobufBuilder.build("SlugConfigureChassisRequest");
-    configMessages.SlugConfigureChassisRequest = new Proto(chassisModel, reactorModel, gyroModel, capacitorModel);
+  this.build_config_mech_request = function(chassisModel, capacitorModel, gyroModel, reactorModel, configureTorsoMessage, configureCockpitMessage, configureArmMessages, configureLegMessages) {
+    var mech = protobufBuilder.build("SlugConfigureMechRequest");
+    return new mech(chassisModel, capacitorModel, gyroModel, reactorModel, configureTorsoMessage, configureCockpitMessage, configureArmMessages, configureLegMessages);
   }
 
   /**
-   * Stores torso configuration.
-   * @param {String} torsoModel - Torso model number.
-   * @param {String} engineModel - Engine model number.
-   * @param {String} armorModel - Armor model number.
-   * @param {Object[]} weaponsArray - The weapons to attach to this torso.
+   * Builds torso configuration protobuf message.
+   * @param {string} torsoModel - Torso model number.
+   * @param {string} engineModel - Engine model number.
+   * @param {string} armorModel - Armor model number.
+   * @param {object[]} weaponsArray - The weapons to attach to this torso.
    * @param {string} weaponsArray[].weaponModel - Model number of this weapon.
    * @param {string} weaponsArray[].capacitorModel - Capacitor Model number to attach to this weapon.
-   * @param {String[]} counterMeasureModels - Counter measure model numbers.
+   * @param {string[]} counterMeasureModels - Counter measure model numbers.
+   * @returns {object} SlugConfigureTorsoMessage protobuf message
    */
-  this.configure_torso = function(torsoModel, engineModel, armorModel, weaponsArray, counterMeasureModels, actuatorModel) {
-    var torso = protobufBuilder.build("SlugConfigureTorsoRequest");
+  this.build_config_torso_message = function(torsoModel, engineModel, armorModel, weaponsArray, counterMeasureModels, actuatorModel) {
+    var torso = protobufBuilder.build("SlugConfigureTorsoMessage");
     var weapon = protobufBuilder.build("SlugConfigureWeaponMessage");
     var protoWeapons = [];
     weaponsArray.forEach(function(val) {
       protoWeapons.push(new weapon(val.weaponModel, val.capacitorModel, val.ammoModel));
     });
-    configMessages.SlugConfigureTorsoRequest = new torso(torsoModel, engineModel, armorModel, protoWeapons, counterMeasureModels, actuatorModel);
+    return new torso(torsoModel, engineModel, armorModel, protoWeapons, counterMeasureModels, actuatorModel);
   }
 
   /**
-   * Stores cockpit configuration.
-   * @param {String} cockpitModel - Cockpit model number.
-   * @param {String[]} computerModels - Computer model numbers.
-   * @param {String[]} sensorModel - Sensor model numbers.   
-   * @param {String[]} communicationModel - Communication model numbers.
-   * @param {String} armorModel - Armor model number.
-   * @param {String[]} counterMeasureModels - Counter measure model numbers.
+   * Builds cockpit configuration protobuf message.
+   * @param {string} cockpitModel - Cockpit model number.
+   * @param {string[]} computerModels - Computer model numbers.
+   * @param {string[]} sensorModels - Sensor model numbers.   
+   * @param {string[]} communicationModels - Communication model numbers.
+   * @param {string} armorModel - Armor model number.
+   * @param {string[]} counterMeasureModels - Counter measure model numbers.
+   * @returns {object} SlugConfigureCockpitMessage protobuf message
    */
-  this.configure_cockpit = function(cockpitModel, computerModels, sensorModels, communicationModels, armorModel, counterMeasureModels) {
-    var cock = protobufBuilder.build("SlugConfigureCockpitRequest");
-    configMessages.SlugConfigureCockpitRequest = new cock(cockpitModel, computerModels, sensorModels, communicationModels, armorModel, counterMeasureModels);
+  this.build_config_cockpit_message = function(cockpitModel, computerModels, sensorModels, communicationModels, armorModel, counterMeasureModels) {
+    var cock = protobufBuilder.build("SlugConfigureCockpitMessage");
+    return new cock(cockpitModel, computerModels, sensorModels, communicationModels, armorModel, counterMeasureModels);
   }
 
   /**
-   * Stores arms configuration.
-   * @param {Object[]} armsArray - The arms to attach to this torso.
+   * Builds array of arm configuration protobuf messages.
+   * @param {object[]} armsArray - The arms to attach to this torso.
    * @param {string} armsArray[].armModel - Model number of this arm.
    * @param {string} armsArray[].armorModel - Model number of this arm's armor.
-   * @param {Object[]} armsArray[].weapons - The weapons attached to this arm.
+   * @param {object[]} armsArray[].weapons - The weapons attached to this arm.
    * @param {string} armsArray[].weapons[].weaponModel - This weapon's model number.
    * @param {string} armsArray[].weapons[].capacitorModel - This weapon's capacitor model number.
    * @param {string[]} armsArray[].counterMeasureModels - The counter measure model numbers for this arm.
    * @param {number} armsArray[].armPosition - The hard point to attach this arm to.
+   * @returns {object[]} array of SlugConfigureArmMessage protobuf messages
    */
-  this.configure_arms = function(armsArray) {
-    var req = protobufBuilder.build("SlugConfigureArmsRequest");
+  this.build_config_arm_messages = function(armsArray) {
     var arm = protobufBuilder.build("SlugConfigureArmMessage");
     var wep = protobufBuilder.build("SlugConfigureWeaponMessage");
     var protoArms = [];
@@ -629,34 +596,33 @@ var AbSdk = function() {
       a.weapons.forEach(function(w) {
         protoWeapons.push(new wep(w.weaponModel, w.capacitorModel, w.ammoModel));
       });
-      protoArms.push(new arm(a.armModel, a.armorModel, protoWeapons, a.counterMeasureModels, a.armPosition));
+      protoArms.push(new arm(a.armModel, a.armorModel, protoWeapons, a.counterMeasureModels));
     });
-    configMessages.SlugConfigureArmsRequest = new req(protoArms);
+    return protoArms;
   }
 
   /**
-   * Stores legs configuration.
-   * @param {Object[]} legsArray - The legs to attach to this torso.
+   * Builds array of leg configuration protobuf messages.
+   * @param {object[]} legsArray - The legs to attach to this torso.
    * @param {string} legsArray[].legModel - Model number of this leg.
    * @param {string} legsArray[].armorModel - Model number of this leg's armor.   
-   * @param {number} legsArray[].legPosition - The hard point to attach this leg to.
+   * @returns {object[]} array of SlugConfigureLegMessage protobuf messages
    */
-  this.configure_legs = function(legsArray) {
-    var req = protobufBuilder.build("SlugConfigureLegsRequest");
+  this.build_config_leg_messages = function(legsArray) {
     var leg = protobufBuilder.build("SlugConfigureLegMessage");
     var protoLegs = [];
     legsArray.forEach(function(l) {
-      protoLegs.push(new leg(l.legModel, l.armorModel, l.legPosition));
+      protoLegs.push(new leg(l.legModel, l.armorModel));
     });
-    configMessages.SlugConfigureLegsRequest = new req(protoLegs);
+    return protoLegs;
   }
 
   /**
    * Commits configuration to server.
    */
-  this.commit_configuration = function() {
-    errorList = [];
-    _commit_chassis(this); // This chains into the rest of the commits.    
+  this.commit_configuration = function(configureMechRequest) {
+    var message = build_message(this.MESSAGE_CODES.SlugConfigureMechRequest, configureMechRequest);
+    _send_message(message);
   }
 
   /**
@@ -714,8 +680,9 @@ var AbSdk = function() {
 
   /**
    * Shortcut to create a weapon object.
-   * @param {String} weaponModel - Weapon model number.
-   * @param {String} [capacitorModel] - Capacitor model number.   
+   * @param {string} weaponModel - Weapon model number.
+   * @param {string} [capacitorModel] - Capacitor model number.  
+   * @returns {object} - Weapon struct 
    */
   this.make_weapon = function(weaponModel, capacitorModel, ammoModel) {
     if (capacitorModel)
@@ -733,21 +700,20 @@ var AbSdk = function() {
 
   /**
    * Shortcut to create an arm object.
-   * @param {String} armModel - Arm model number.
-   * @param {String} armorModel - Armor model number.   
-   * @param {Object[]} weaponList - The weapons attached to this arm.
+   * @param {string} armModel - Arm model number.
+   * @param {string} armorModel - Armor model number.   
+   * @param {object[]} weaponList - The weapons attached to this arm.
    * @param {string} weaponList[].weaponModel - This weapon's model number.
    * @param {string} weaponList[].capacitorModel - This weapon's capacitor model number.
-   * @param {String[]} counterMeasureModels - Counter measure model numbers.   
-   * @param {number} armPosition - Hardpoint to attach arm to.
+   * @param {string[]} counterMeasureModels - Counter measure model numbers.   
+   * @returns {object} - Arm struct 
    */
-  this.make_arm = function(armModel, armorModel, weaponList, counterMeasureModels, armPosition) {
+  this.make_arm = function(armModel, armorModel, weaponList, counterMeasureModels) {
     return {
       'armModel': armModel,
       'armorModel': armorModel,
       'weapons': weaponList,
-      'counterMeasureModels': counterMeasureModels,
-      'armPosition': armPosition
+      'counterMeasureModels': counterMeasureModels
     };
   }
 
@@ -755,233 +721,149 @@ var AbSdk = function() {
    * Shortcut to create a leg object.
    * @param {string} legModel - Leg model number.
    * @param {string} armorModel - Armor model number.
-   * @param {number} legPosition - Hardpoint to attach leg to.
+   * @returns {object} - Leg struct 
    */
-  this.make_leg = function(legModel, armorModel, legPosition) {
+  this.make_leg = function(legModel, armorModel) {
     return {
       'legModel': legModel,
-      'armorModel': armorModel,
-      'legPosition': legPosition
+      'armorModel': armorModel
     };
   }
 
-  // TODO: Document
-  this.extract_chassis_power = function(rawState) {
-    var ret = 0;
-    try {
-      ret += rawState.reactor.output;
-      if (rawState.capacitor) {
-        ret += rawState.capacitor.chargeAmount;
-      }
-    } catch ( err ) {
-      ret = 0;
+  /**
+   * @param {object} rawState - The war machine json structure obtained through sdk.query_war_machine
+   * @returns {number} - Total power available from general capacitors and reactor, excludes weapon capacitors.
+  **/
+  this.extract_chassis_total_power = function(rawState) {
+    ret += rawState.reactor.output;
+    for (var i = 0; i < rawState.capacitors.length; i++) {
+      if(rawState.capacitors[i].location.locationType != "weapon")
+        ret += rawState.capacitors[i].chargeAmount;
     }
     return ret;
   }
 
-  // TODO: Document
-  this.extract_arm_weapons = function(armPosition, rawState) {
-    var ret = [];
-    try {
-      var arm = null;
-      for (var i = 0; i < rawState.arms.length; i++) {
-        if (rawState.arms[i].index == armPosition) {
-          arm = rawState.arms[i];
-          break;
-        }
-      }
-      ;
-      if (arm) {
-        arm.weapons.forEach(function(wep) {
-          ret.push(wep);
-        });
-      }
-    } catch ( err ) {
-      this.log(err + " ArmPosition(" + armPosition + ")");
-      return ret;
-    }
-    return ret;
+  /**
+   * @param {number} locationType - int32 - sdk.LOCATION_TYPE
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {?number} state - int32 - sdk.COMPONENT_STATE
+   * @param {?number} rotateX - float in degrees
+   * @param {?number} rotateY - float in degrees
+   * @param {?number} speed - float in degrees
+   */
+  this.send_actuator_request = function(locationType, parentId, positionId, state, rotateX, rotateY, speed) {
+    var p = protobufBuilder.build("SlugCommitActuatorRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state, rotateX, rotateY, speed);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitActuatorRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.extract_torso_weapons = function(rawState) {
-    var ret = [];
-    try {
-      rawState.torso.weapons.forEach(function(wep) {
-        ret.push(wep);
-      });
-    } catch ( err ) {
-      return ret;
-    }
-    return ret;
+  /**
+   * @param {number} locationType - int32 - sdk.LOCATION_TYPE
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {?number} state - int32 - sdk.COMPONENT_STATE
+   * @param {?number} channelNumber - int32
+   * @param {?byte[]} channelData
+   * @param {?number} targetUser - int32
+   **/
+  this.send_communication_request = function(locationType, parentId, positionId, state, channelNumber, channelData, targetUser) {
+    var p = protobufBuilder.build("SlugCommitCommunicationRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state, channelNumber, channelData, targetUser);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.toggle_torso_state = function(state) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
-    var p = new Proto(state, null, null, null, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    _send_message(message);
+  /**
+   * @param {number} locationType - int32 - sdk.LOCATION_TYPE
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {?number} state - int32 - sdk.COMPONENT_STATE
+   * @param {?number} target - int32
+   * @param {?number[]} clearTargets - int32
+   * @param {?boolean} clearPrimary
+   * @param {?boolean} clearLocked
+   **/
+  this.send_computer_request = function(locationType, parentId, positionId, state, target, clearTargets, clearPrimary, clearLocked) {
+    var p = protobufBuilder.build("SlugCommitComputerRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state, target, clearTargets, clearPrimary, clearLocked);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitComputerRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.set_torso_rotation = function(pitch, yaw, speed) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
-    var p = new Proto(null, null, pitch, yaw, speed);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    _send_message(message);
+  /**
+   * @param {number} locationType - int32 - sdk.LOCATION_TYPE
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {number} state - int32 - sdk.COMPONENT_STATE
+   **/
+  this.send_counter_measure_request = function(locationType, parentId, positionId, state) {
+    var p = protobufBuilder.build("SlugCommitCounterMeasureRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitCounterMeasureRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.recenter_torso = function(speed) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoActuatorRequest");
-    var p = new Proto(null, true, null, null, speed);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoActuatorRequest, p);
-    _send_message(message);
+  /**
+   * @param {?number} state - sdk.COMPONENT_STATE
+   * @param {?number} velocity - target velocity
+   **/
+  this.send_engine_request = function(state, velocity) {
+    var p = protobufBuilder.build("SlugCommitEngineRequest");
+    var m = new p(state, velocity);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitEngineRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.fire_torso_weapon_start = function(weaponPosition) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Fire);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    _send_message(message);
+  /**
+   * @param {?boolean} shutdown
+   * @param {?number} rotation - float in degrees
+   **/
+  this.send_mech_request = function(shutdown, rotation) {
+    var p = protobufBuilder.build("SlugCommitMechRequest");
+    var m = new p(shutdown, rotation);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitMechRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.fire_torso_weapon_stop = function(weaponPosition) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Idle);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    _send_message(message);
+  /**
+   * @param {number} locationType - int32
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {?number} state - int32 - sdk.COMPONENT_STATE
+   **/
+  this.send_sensor_request = function(locationType, parentId, positionId, state) {
+    var p = protobufBuilder.build("SlugCommitSensorRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
+    _send_message(mg);
   }
 
-  // TODO: Document
-  this.reload_torso_weapon = function(weaponPosition) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, null, this.WEAPON_FIRE_STATE.Reload);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_torso_weapon_state = function(weaponPosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoWeaponRequest");
-    var p = new Proto(weaponPosition, state, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoWeaponRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_torso_counter_measure_state = function(counterMeasurePosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitTorsoCounterMeasureRequest");
-    var p = new Proto(counterMeasurePosition, state);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitTorsoCounterMeasureRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.fire_arm_weapon_start = function(armPosition, weaponIndex) {
-    var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
-    var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Fire);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.fire_arm_weapon_stop = function(armPosition, weaponIndex) {
-    var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
-    var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Idle);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.reload_arm_weapon = function(armPosition, weaponIndex) {
-    var Proto = protobufBuilder.build("SlugSetCommitArmWeaponRequest");
-    var p = new Proto(armPosition, weaponIndex, null, this.WEAPON_FIRE_STATE.Reload);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmWeaponRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_arm_counter_measure_state = function(armPosition, counterMeasurePosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitArmCounterMeasureRequest");
-    var p = new Proto(armPosition, counterMeasurePosition, state);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitArmCounterMeasureRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.set_acceleration = function(speed) {
-    var Proto = protobufBuilder.build("SlugSetCommitEngineRequest");
-    var p = new Proto(null, speed);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitEngineRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_engine_state = function(state) {
-    var Proto = protobufBuilder.build("SlugSetCommitEngineRequest");
-    var p = new Proto(state, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitEngineRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.set_rotation = function(angle) {
-    var Proto = protobufBuilder.build("SlugSetCommitChassisRequest");
-    var p = new Proto(null, angle);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitChassisRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_chassis_state = function(state) {
-    var Proto = protobufBuilder.build("SlugSetCommitChassisRequest");
-    var p = new Proto(state, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitChassisRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.send_comm = function(commPosition, channel, byteData) {
-    var Proto = protobufBuilder.build("SlugSetCommitCockpitCommunicationRequest");
-    var p = new Proto(commPosition, null, channel, byteData);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitCommunicationRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_comm_state = function(commPosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitCockpitCommunicationRequest");
-    var p = new Proto(commPosition, state, null, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitCommunicationRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.set_computer_target_lock = function(computerPosition, targetIndex) {
-    var Proto = protobufBuilder.build("SlugSetCommitCockpitComputerRequest");
-    var p = new Proto(computerPosition, null, targetIndex);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitComputerRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_computer_state = function(computerPosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitCockpitComputerRequest");
-    var p = new Proto(computerPosition, state, null);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitComputerRequest, p);
-    _send_message(message);
-  }
-
-  // TODO: Document
-  this.toggle_cockpit_sensor_state = function(sensorPosition, state) {
-    var Proto = protobufBuilder.build("SlugSetCommitCockpitSensorRequest");
-    var p = new Proto(sensorPosition, state);
-    var message = build_message(this.MESSAGE_CODES.SlugSetCommitCockpitSensorRequest, p);
-    _send_message(message);
+  /**
+   * @param {number} locationType - int32 - sdk.LOCATION_TYPE
+   * @param {number} parentId - int32
+   * @param {number} positionId - int32
+   * @param {?number} state - int32 - sdk.COMPONENT_STATE
+   * @param {?number} fireState - int32 - sdk.WEAPON_FIRE_STATE
+   **/
+  this.send_weapon_request = function(locationType, parentId, positionId, state, fireState) {
+    var p = protobufBuilder.build("SlugCommitWeaponRequest");
+    var l = protobufBuilder.build("SlugQueryLocationMessage");
+    var loc = new l(locationType, parentId, positionId);
+    var m = new p(loc, state, fireState);
+    var mg = build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
+    _send_message(mg);
   }
 };
 

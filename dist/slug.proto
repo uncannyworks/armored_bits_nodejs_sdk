@@ -1,68 +1,53 @@
-message SlugSetCommitArmCounterMeasureRequest {
-  required int32 armPosition            = 1;
-  required int32 counterMeasurePosition = 2;
-  required int32 state                  = 3;
+message SlugCommitActuatorRequest {
+  required SlugQueryLocationMessage location = 1;
+  optional int32 state      = 2;
+  optional float rotateX    = 3;
+  optional float rotateY    = 4;
+  optional float speed      = 5;
 }
 
-message SlugSetCommitArmWeaponRequest {
-  required int32 armPosition    = 1;
-  required int32 weaponPosition = 2;
-  optional int32 state          = 3;
-  optional int32 fireState      = 4;
+message SlugCommitCommunicationRequest {
+  required SlugQueryLocationMessage location = 1;
+  optional int32 state           = 2;
+  optional int32 channelNumber   = 3;
+  optional bytes channelData     = 4;
+  optional int32 targetUser      = 5;
 }
 
-message SlugSetCommitChassisRequest {
+message SlugCommitComputerRequest {
+  required SlugQueryLocationMessage location = 1;
+  optional int32 state        = 2;
+  optional int32 target       = 3;
+  repeated int32 clearTargets = 4;
+  optional bool clearPrimary  = 5;
+  optional bool clearLocked   = 6;
+}
+
+message SlugCommitCounterMeasureRequest {
+  required SlugQueryLocationMessage location = 1;
+  required int32 state            = 2;
+}
+
+message SlugCommitEngineRequest {
+  optional int32 state        = 1;
+  optional float velocity     = 2;
+}
+
+message SlugCommitMechRequest {
   optional bool shutdown  = 1;
   optional float rotation = 2;
 }
 
-message SlugSetCommitCockpitCommunicationRequest {
-  required int32 communicationPosition = 1;
-  optional int32 state                 = 2;
-  optional int32 channelNumber         = 3;
-  repeated bytes channelData            = 4;
+message SlugCommitSensorRequest {
+  required SlugQueryLocationMessage location = 1;
+  optional int32 state     = 2;
 }
 
-message SlugSetCommitCockpitComputerRequest {
-  required int32 computerPosition = 1;
-  optional int32 state            = 2;
-  optional int32 target           = 3;
+message SlugCommitWeaponRequest {
+  required SlugQueryLocationMessage location = 1;
+  optional int32 state     = 2;
+  optional int32 fireState = 3;
 }
-
-message SlugSetCommitCockpitCounterMeasureRequest {
-  required int32 counterMeasurePosition = 1;
-  optional int32 state                  = 2; 
-}
-
-message SlugSetCommitCockpitSensorRequest {
-  required int32 sensorPosition = 1;
-  optional int32 state          = 2;
-}
-
-message SlugSetCommitEngineRequest {
-  optional int32 state        = 1;
-  optional float acceleration = 2;
-}
-
-message SlugSetCommitTorsoActuatorRequest {
-  optional int32 state   = 1;
-  optional bool reset    = 2;
-  optional float rotateX = 3;
-  optional float rotateY = 4;
-  optional float speed   = 5;
-}
-
-message SlugSetCommitTorsoCounterMeasureRequest {
-  required int32 counterMeasurePosition = 1;
-  required int32 state                  = 2;
-}
-
-message SlugSetCommitTorsoWeaponRequest {
-  required int32 weaponPosition = 1;
-  optional int32 state          = 2;
-  optional int32 fireState      = 3;
-}
-
 message VectorMessage {
   required float x = 1;
   required float y = 2;
@@ -76,107 +61,113 @@ message ActiveComponentMessage {
   required int32 powerDrawActive = 3;
 }
 
+message SlugQueryLocationMessage {
+  required int32 locationType  = 1;
+  required int32 parentId      = 2;
+  required int32 positionId    = 3;
+}
+
+message ActiveTargetMessage {
+  required int32 targetId               = 1;
+  required VectorMessage targetPosition = 2;
+}
+
 message SlugQueryActuatorMessage {
-  required string state                   = 1;
-  required VectorMessage rotationMin      = 2;
-  required VectorMessage rotationMax      = 3;
-  required VectorMessage rotationDefault  = 4;
-  required VectorMessage rotationCurrent  = 5;
-  required VectorMessage rotationTarget   = 6;
-  required VectorMessage rotationSpeedMax = 7;
-  required VectorMessage rotationSpeed    = 8;
+  required int32 state                       = 1;
+  required SlugQueryLocationMessage location = 2;
+  required VectorMessage rotationMin         = 3;
+  required VectorMessage rotationMax         = 4;
+  required VectorMessage rotationDefault     = 5;
+  required VectorMessage rotationCurrent     = 6;
+  required VectorMessage rotationTarget      = 7;
+  required float rotationSpeedMax            = 8;
+  required float rotationSpeed               = 9;
 }
 
 message SlugQueryArmMessage {
-  required int32 index                                    = 1;
-  required string state                                   = 2;
-  required bool hasStorage                                = 3;
-  optional SlugQueryStorageMessage storage                = 4;
-  repeated SlugQueryWeaponMessage weapons                 = 5;
-  repeated SlugQueryCounterMeasureMessage counterMeasures = 6;
-  required SlugQueryArmorMessage armor                    = 7;
+  required int32 index     = 1;
+  required int32 state     = 2;
+  required bool hasStorage = 3;
 }
 
 message SlugQueryArmorMessage {
-  required int32 valueFrontMax     = 1;
-  required int32 valueFrontCurrent = 2;
-  required int32 valueBackMax      = 3;
-  required int32 valueBackCurrent  = 4;
+  required SlugQueryLocationMessage location = 1;
+  required int32 valueFrontMax               = 2;
+  required int32 valueFrontCurrent           = 3;
+  required int32 valueBackMax                = 4;
+  required int32 valueBackCurrent            = 5;
 }
 
 message SlugQueryCapacitorMessage {
-  required string state       = 1;
-  required int32 capacity     = 2;
-  required float chargeRate   = 3;
-  required int32 chargeAmount = 4;
+  required SlugQueryLocationMessage location = 1;
+  required int32 state                       = 2;
+  required int32 capacity                    = 3;
+  required float chargeRate                  = 4;
+  required int32 chargeAmount                = 5;
 }
 
 message SlugQueryCockpitMessage {
-  required string state                                   = 1;
-  repeated SlugQueryComputerMessage computers             = 2;
-  repeated SlugQueryCommunicationMessage communications   = 3;
-  repeated SlugQuerySensorMessage sensors                 = 4;
-  repeated SlugQueryCounterMeasureMessage counterMeasures = 5;
-  required SlugQueryArmorMessage armor                    = 6;
-}
-
-message SlugQueryComputerMessage {
-  required int32 index                             = 1;
-  required string state                            = 2;
-  required ActiveComponentMessage activeComponent  = 3;
-  required int32 targetsMax                        = 4;
-  repeated int32 targetsLocked                     = 5;
-  required int32 targetPrimary                     = 6;
-  required int32 targetLockNew                     = 7;
-  required float targetLockOnTime                  = 8;
-  required float targetLockTime                    = 9;
-  repeated int32 teamMechs                         = 10;
+  required int32 state  = 1;
 }
 
 message SlugQueryCommunicationMessage {
   required int32 index                            = 1;
-  required string state                           = 2;
+  required int32 state                            = 2;
   required ActiveComponentMessage activeComponent = 3;
-  required string cType                           = 4;
-  required int32 receiveRate                      = 5;
-  required int32 sendRate                         = 6;
+  required int32 cType                           = 4;
+  required float receiveRate                      = 5;
+  required float sendRate                         = 6;
   required float maxRange                         = 7;
   required int32 channels                         = 8;
-  optional float delay                            = 9;
+  required float delay                            = 9;
+  required int32 bufferSize                       = 10;
+}
+
+message SlugQueryComputerMessage {
+  required int32 index                            = 1;
+  required int32 state                            = 2;
+  required ActiveComponentMessage activeComponent = 3;
+  required int32 targetsMax                       = 4;
+  repeated int32 targetsLocked                    = 5;
+  required int32 targetPrimary                    = 6;
+  required int32 targetLockNew                    = 7;
+  required float targetLockOnTime                 = 8;
+  required float targetLockTime                   = 9;
+  repeated int32 teamMechs                        = 10;
 }
 
 message SlugQueryCounterMeasureMessage {
   required int32 index                            = 1;
-  required string state                           = 2;
-  required string cmType                          = 3;
+  required int32 state                            = 2;
+  required int32 cmType                          = 3;
   required ActiveComponentMessage activeComponent = 4;
 }
 
 message SlugQueryEngineMessage {
-  required string state                           = 1;
+  required int32 state                            = 1;
   required ActiveComponentMessage activeComponent = 2;
-  required float accelerationMax                  = 3;
-  required float acceleration                     = 4;
-  required float velocityMax                      = 5;
-  required float velocity                         = 6;
+}
+
+message SlugQueryGyroMessage {
+  required int32 state  = 1;
 }
 
 message SlugQueryLegMessage {
   required int32 index                 = 1;
-  required string state                = 2;
+  required int32 state                 = 2;
   required SlugQueryArmorMessage armor = 3;
 }
 
 message SlugQueryReactorMessage {
-  required string state = 1;
+  required int32 state  = 1;
   required int32 output = 2;
 }
 
 message SlugQuerySensorMessage {
   required int32 index                            = 1;
-  required string state                           = 2;
+  required int32 state                            = 2;
   required ActiveComponentMessage activeComponent = 3;
-  required string sType                           = 4;
+  required int32 sType                           = 4;
   required float maxRange                         = 5;
   required float fov                              = 6;
   required bool occlusion                         = 7;
@@ -185,42 +176,55 @@ message SlugQuerySensorMessage {
 }
 
 message SlugQueryStorageMessage {
-  required int32 size = 1;
+  required SlugQueryLocationMessage location = 1;
+  required int32 size                        = 2;
 }
 
 message SlugQueryTorsoMessage {
-  required string state                                   = 1;
-  required bool hasStorage                                = 2;
-  optional SlugQueryStorageMessage storage                = 3;
-  required SlugQueryEngineMessage engine                  = 4;
-  required SlugQueryArmorMessage armor                    = 5;
-  repeated SlugQueryWeaponMessage weapons                 = 6;
-  repeated SlugQueryCounterMeasureMessage counterMeasures = 7;
+  required int32 state  = 1;
 }
 
 message SlugQueryWeaponMessage {
-  required int32 index                            = 1;
-  required string state                           = 2;
+  required SlugQueryLocationMessage location      = 1;
+  required int32 state                            = 2;
   required ActiveComponentMessage activeComponent = 3;
-  required string wType                           = 4;
-  required string fireState                       = 5;  
-  required bool hasCapacitor                      = 6;
-  optional SlugQueryCapacitorMessage capacitor    = 7;
-  required float fireRate                         = 8; 
-  required float firedLast                        = 9; 
-  required int32 ammoMax                          = 10;
-  required int32 ammoCurrent                      = 11;
-  required int32 clipMax                          = 12;
-  required int32 clipCurrent                      = 13;
-  required float reloadRate                       = 14;
-  required float unJamChance                      = 15;
-  required float rangeLow                         = 16;
-  required float rangeMid                         = 17;
-  required float rangeHigh                        = 18;
-  required float damageLow                        = 19;
-  required float damageMid                        = 20;
-  required float damageHigh                       = 21;
-  required int32 firedCount                       = 22;
+  required int32 fireState                       = 4;  
+  required bool hasCapacitor                      = 5;
+  required float fireRate                         = 6; 
+  required float firedLast                        = 7; 
+  required int32 ammoMax                          = 8;
+  required int32 ammoCurrent                      = 9;
+  required int32 clipMax                          = 10;
+  required int32 clipCurrent                      = 11;
+  required float reloadRate                       = 12;
+  required float unJamChance                      = 13;
+  required float rangeLow                         = 14;
+  required float rangeMid                         = 15;
+  required float rangeHigh                        = 16;
+  required float damageLow                        = 17;
+  required float damageMid                        = 18;
+  required float damageHigh                       = 19;
+  required int32 firedCount                       = 20;
+}
+
+message ServerClientObjectSpawnMessage {
+  optional int32 playerId         = 1;
+  required int32 objectId         = 2;
+  required int32 objectType       = 3;
+  required VectorMessage position = 4;
+  required VectorMessage rotation = 5;
+}
+
+
+message ServerClientObjectMoveMessage {
+  required int32         objectId = 1;
+  required VectorMessage position = 2;
+  required VectorMessage rotation = 3;
+}
+
+message ServerClientObjectDestroyMessage {
+  required int32 objectId   = 1;
+  required int32 objectType = 2;
 }
 
 message ServerStateMessage {
@@ -229,6 +233,12 @@ message ServerStateMessage {
 
 message ServerWorldStateMessage {
   required int32 worldState = 1;
+}
+
+message ServerCommunicationMessage {
+  required int32 componentId = 1;
+  required int32 channel     = 2;
+  required bytes message     = 3;
 }
 
 message SlugActionLoginRequest {
@@ -249,14 +259,14 @@ message ServerSlugGenericResponse {
 
 // Configuration
 
-message SlugConfigureChassisRequest {
-  required string model          = 1;
-  required string reactorModel   = 2;
-  required string gyroModel      = 3;
-  optional string capacitorModel = 4;
+message SlugConfigureArmMessage {
+  required string armModel                    = 1;
+  required string armorModel                  = 2;
+  repeated SlugConfigureWeaponMessage weapons = 3;
+  repeated string counterMeasureModels        = 4;
 }
 
-message SlugConfigureCockpitRequest {
+message SlugConfigureCockpitMessage {
   required string cockpitModel         = 1;
   repeated string computerModels       = 2;
   repeated string sensorModels         = 3;
@@ -265,7 +275,12 @@ message SlugConfigureCockpitRequest {
   repeated string counterMeasureModels = 6;
 }
 
-message SlugConfigureTorsoRequest  {
+message SlugConfigureLegMessage {
+  required string legModel    = 1;
+  required string armorModel  = 2;
+}
+
+message SlugConfigureTorsoMessage  {
   required string torsoModel                  = 1;
   required string engineModel                 = 2;
   required string armorModel                  = 3;
@@ -274,32 +289,21 @@ message SlugConfigureTorsoRequest  {
   required string actuatorModel               = 6;
 }
  
-message SlugConfigureArmsRequest {
-  repeated SlugConfigureArmMessage arms = 1;
-}
-
-message SlugConfigureLegsRequest {
-  repeated SlugConfigureLegMessage legs = 1;
-}
-
-message SlugConfigureArmMessage {
-  required string armModel                    = 1;
-  required string armorModel                  = 2;
-  repeated SlugConfigureWeaponMessage weapons = 3;
-  repeated string counterMeasureModels        = 4;
-  required int32 armPosition                 = 5;
-}
-
-message SlugConfigureLegMessage {
-  required string legModel    = 1;
-  required string armorModel  = 2;
-  required int32  legPosition = 3;
-}
-
 message SlugConfigureWeaponMessage {
   required string weaponModel    = 1;
   optional string capacitorModel = 2;
   required string ammoModel      = 3;
+}
+
+message SlugConfigureMechRequest {
+  required string model                              = 1;
+  optional string capacitorModel                     = 2;
+  required string gyroModel                          = 3;
+  required string reactorModel                       = 4;
+  required SlugConfigureTorsoMessage torsoConfig     = 5;
+  repeated SlugConfigureCockpitMessage cockpitConfig = 6;
+  repeated SlugConfigureArmMessage armsConfig        = 7;
+  repeated SlugConfigureLegMessage legsConfig        = 8;
 }
 
 message SlugConfigureDoneRequest {
@@ -309,31 +313,30 @@ message SlugConfigureDoneRequest {
 // Query
 
 // empty message
-// message SlugGetQueryWarMachineRequest {
+// message SlugQueryMechRequest {
 // }
 
-message SlugGetQueryWarMachineResponse {
-  required string state                        = 1;
-  required int32  maxWeight                    = 2;
-  required int32  currentWeight                = 3;
-  required bool   hasStorage                   = 4;
-  required SlugQueryStorageMessage storage     = 5;
-  required bool   hasCapacitor                 = 6;
-  required SlugQueryCapacitorMessage capacitor = 7;
-  required int32  armCount                     = 8;
-  required int32  legCount                     = 9;
-  required VectorMessage position              = 10;
-  required VectorMessage rotation              = 11;
-  required float rotationRate                  = 12;
-  required float rotationTarget                = 13;
-  required SlugQueryReactorMessage reactor     = 14;
-  required SlugQueryTorsoMessage torso         = 15;
-  required SlugQueryCockpitMessage cockpit     = 16;
-  repeated SlugQueryArmMessage arms            = 17;
-  repeated SlugQueryLegMessage legs            = 18;
-}
-
-message ActiveTargetMessage {
-  required int32 targetId               = 1;
-  required VectorMessage targetPosition = 2;
+message SlugQueryMechResponse {
+  required int32 state                            = 1;
+  required int32  maxWeight                       = 2;
+  required int32  currentWeight                   = 3;
+  required VectorMessage position                 = 4;
+  required VectorMessage rotation                 = 5;
+  required float rotationRate                     = 6;
+  repeated SlugQueryActuatorMessage actuators     = 7;
+  repeated SlugQueryArmMessage arms               = 8;
+  repeated SlugQueryArmorMessage armors           = 9;
+  repeated SlugQueryCapacitorMessage capacitors   = 10;
+  required SlugQueryCockpitMessage cockpit        = 11;
+  repeated SlugQueryCommunicationMessage communicaitons   = 12;
+  repeated SlugQueryComputerMessage computers     = 13;
+  repeated SlugQueryCounterMeasureMessage counterMeasures = 14;
+  required SlugQueryEngineMessage engine          = 15;
+  required SlugQueryGyroMessage gyro              = 16;
+  repeated SlugQueryLegMessage legs               = 17;
+  repeated SlugQuerySensorMessage sensors         = 18;
+  repeated SlugQueryStorageMessage storages       = 19;
+  required SlugQueryReactorMessage reactor        = 20;
+  required SlugQueryTorsoMessage torso            = 21;
+  repeated SlugQueryWeaponMessage weapons         = 22;
 }
