@@ -735,7 +735,7 @@ var AbSdk = function() {
    * @returns {number} - Total power available from general capacitors and reactor, excludes weapon capacitors.
   **/
   this.extract_chassis_total_power = function(rawState) {
-    ret += rawState.reactor.output;
+    var ret = rawState.reactor.output;
     for (var i = 0; i < rawState.capacitors.length; i++) {
       if(rawState.capacitors[i].location.locationType != "weapon")
         ret += rawState.capacitors[i].chargeAmount;
