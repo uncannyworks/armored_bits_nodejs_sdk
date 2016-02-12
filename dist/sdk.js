@@ -185,7 +185,7 @@ var AbSdk = function() {
 
   var internalWarMachine;
 
-  var error_code_to_string = function(code) {
+  var _error_code_to_string = function(code) {
     for (var i in self.ERROR_CODES) {
       if (self.ERROR_CODES[i] == code) {
         return i;
@@ -193,7 +193,7 @@ var AbSdk = function() {
     }
   }
 
-  var message_code_to_string = function(code) {
+  var _message_code_to_string = function(code) {
     for (var i in self.MESSAGE_CODES) {
       if (self.MESSAGE_CODES[i] == code) {
         return i;
@@ -201,7 +201,7 @@ var AbSdk = function() {
     }
   }
 
-  var build_message = function(code, message) {
+  var _build_message = function(code, message) {
     var buff = new protobuf.ByteBuffer(0);
     if (message) {
       buff = message.encode();
@@ -302,12 +302,12 @@ var AbSdk = function() {
             break;
 
           case self.MESSAGE_CODES.SlugConfigureMechRequest:
-            if (self.on_configuration_commit_finished) self.on_configuration_commit_finished(message.response, message.error, error_code_to_string(message.error));
+            if (self.on_configuration_commit_finished) self.on_configuration_commit_finished(message.response, message.error, _error_code_to_string(message.error));
             break;
           }
         case self.WORLD_STATE_CODES.GamePhase:
           if (message.error != self.ERROR_CODES.NONE) {
-            self.log("ERROR MID (" + message.msgId + ") -- " + error_code_to_string(message.error));
+            self.log("ERROR MID (" + message.msgId + ") -- " + _error_code_to_string(message.error));
           }
           break;
         }
@@ -335,7 +335,7 @@ var AbSdk = function() {
     var Proto = protobufBuilder.build("SlugActionLoginRequest");
     var authMessage = new Proto("gameid", "slugid", "UserName");
 
-    var message = build_message(self.MESSAGE_CODES.SlugActionLoginRequest, authMessage);
+    var message = _build_message(self.MESSAGE_CODES.SlugActionLoginRequest, authMessage);
 
     _send_message(message);
   }
@@ -348,13 +348,13 @@ var AbSdk = function() {
     } else {
       self.log("Send configuration complete message.");
     }
-    var message = build_message(self.MESSAGE_CODES.SlugConfigureDoneRequest, configureDoneRequest);
+    var message = _build_message(self.MESSAGE_CODES.SlugConfigureDoneRequest, configureDoneRequest);
 
     _send_message(message);
   }
 
   var _query_war_machine = function() {
-    var message = build_message(self.MESSAGE_CODES.SlugQueryMechRequest);
+    var message = _build_message(self.MESSAGE_CODES.SlugQueryMechRequest);
     _send_message(message);
   }
 
@@ -621,7 +621,7 @@ var AbSdk = function() {
    * Commits configuration to server.
    */
   this.commit_configuration = function(configureMechRequest) {
-    var message = build_message(this.MESSAGE_CODES.SlugConfigureMechRequest, configureMechRequest);
+    var message = _build_message(this.MESSAGE_CODES.SlugConfigureMechRequest, configureMechRequest);
     _send_message(message);
   }
 
@@ -757,7 +757,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state, rotateX, rotateY, speed);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitActuatorRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitActuatorRequest, m);
     _send_message(mg);
   }
 
@@ -775,7 +775,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state, channelNumber, channelData, targetUser);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
     _send_message(mg);
   }
 
@@ -794,7 +794,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state, target, clearTargets, clearPrimary, clearLocked);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitComputerRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitComputerRequest, m);
     _send_message(mg);
   }
 
@@ -809,7 +809,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitCounterMeasureRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitCounterMeasureRequest, m);
     _send_message(mg);
   }
 
@@ -820,7 +820,7 @@ var AbSdk = function() {
   this.send_engine_request = function(state, velocity) {
     var p = protobufBuilder.build("SlugCommitEngineRequest");
     var m = new p(state, velocity);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitEngineRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitEngineRequest, m);
     _send_message(mg);
   }
 
@@ -831,7 +831,7 @@ var AbSdk = function() {
   this.send_mech_request = function(shutdown, rotation) {
     var p = protobufBuilder.build("SlugCommitMechRequest");
     var m = new p(shutdown, rotation);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitMechRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitMechRequest, m);
     _send_message(mg);
   }
 
@@ -846,7 +846,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
     _send_message(mg);
   }
 
@@ -862,7 +862,7 @@ var AbSdk = function() {
     var l = protobufBuilder.build("SlugQueryLocationMessage");
     var loc = new l(locationType, parentId, positionId);
     var m = new p(loc, state, fireState);
-    var mg = build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
+    var mg = _build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
     _send_message(mg);
   }
 };
