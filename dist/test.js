@@ -112,56 +112,38 @@ var assign_hooks = function() {
   }
 }
 
-var qt;
 var query_wm = function() {
   if (inGame) {
-    qt = process.hrtime();
     sdk.query_war_machine(ai_logic);
   }
 }
 
-var shooting = false;
 var ai_logic = function(mechState) {
   try {
-    var diff = process.hrtime(qt);
 
-    console.log('Request took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
-    qt = process.hrtime();
-
+    sdk.get_chassis_total_power();
+    sdk.rotate_torso(10, 10, 10);
+    sdk.broadcast_comm_message(mechState.communications[0], 1, "HERRO!", null);
+    sdk.lock_on_target(mechState.computers[0], 9999999);
+    sdk.clear_targets(mechState.computers[0], [9999999]);
+    sdk.clear_primary_target(mechState.computers[0]);
+    sdk.clear_locked_target(mechState.computers[0]);
+    sdk.activate_counter_measure(mechState.counterMeasures[0]);
+    sdk.deactivate_counter_measure(mechState.counterMeasures[0]);
     sdk.set_speed(100);
-    sdk.rotate_torso(0, 20, 100);
-    var weapons = mechState.weapons;
-
-    if (!shooting) {
-      shooting = true;
-      start_shooting(weapons[0], 500, 3000);    
-      sdk.broadcast_comm_message(mechState.communications[0], 1, "Herro!", null);
-    }
-
     sdk.rotate(1);
-
-    diff = process.hrtime(qt);
-
-    console.log('Logic took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
-
+    sdk.power_down();
+    sdk.power_up();
+    sdk.activate_sensor(mechState.sensors[0]);
+    sdk.deactivate_sensor(mechState.sensors[0]);
+    sdk.fire_weapon(mechState.weapons[0]);
+    sdk.reload_weapon(mechState.weapons[0]);
+    sdk.idle_weapon(mechState.weapons[0]);
+  
   } catch(err) {
     console.log("ERROR: " + err.stack);
   }  
   query_wm();
-}
-
-var start_shooting = function(weapon, burst, delay) {
-  sdk.fire_weapon(weapon);
-  setTimeout(function() {
-    stop_shooting(weapon, burst, delay);
-  }, burst);  
-}
-
-var stop_shooting = function(weapon, burst, delay) {
-  sdk.idle_weapon(weapon);
-  setTimeout(function() {
-    start_shooting(weapon, burst, delay);
-  }, delay);
 }
 
 var message_code_to_string = function(code) {

@@ -148,7 +148,10 @@ var AbSdk = function() {
   */
   this.COMPONENT_STATE = {
     Active: 1,
-    Inactive: 2
+    Inactive: 2,
+    NoPower: 3,
+    Disabled: 4,
+    Destroyed: 5
   }
 
   /**
@@ -751,11 +754,18 @@ var AbSdk = function() {
    * @param {object} rawState - The war machine json structure obtained through sdk.query_war_machine
    * @returns {number} - Total power available from general capacitors and reactor, excludes weapon capacitors.
   **/
-  this.extract_chassis_total_power = function(rawState) {
-    var ret = rawState.reactor.output;
-    for (var i = 0; i < rawState.capacitors.length; i++) {
-      if(rawState.capacitors[i].location.locationType != "weapon")
-        ret += rawState.capacitors[i].chargeAmount;
+  this.get_chassis_total_power = function(warMachineStruct) {
+    if(warMachineStruct == null) {
+      if(null == internalWarMachine) {
+        self.log("(ERROR) No cached War Machine. Please use sdk.query_war_machine first");
+        return;
+      }
+      warMachineStruct = internalWarMachine;
+    }
+    var ret = warMachineStruct.reactor.output;
+    for (var i = 0; i < warMachineStruct.capacitors.length; i++) {
+      if(warMachineStruct.capacitors[i].location.locationType != "weapon")
+        ret += warMachineStruct.capacitors[i].chargeAmount;
     }
     return ret;
   }
@@ -779,6 +789,40 @@ var AbSdk = function() {
   }
 
   /**
+   * TODO: Document
+   **/
+  this.rotate_actuator = function(actuatorStruct, xAngle, yAngle, speed){
+    this.send_actuator_request(actuatorStruct.location.locationType,
+      actuatorStruct.location.parentId,
+      actuatorStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      xAngle,
+      yAngle,
+      speed
+    );
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.rotate_torso = function(xAngle, yAngle, speed, warMachineStruct){
+    if(warMachineStruct == null) {
+      if(null == internalWarMachine) {
+        self.log("(ERROR) No cached War Machine. Please use sdk.query_war_machine first");
+        return;
+      }
+      warMachineStruct = internalWarMachine;
+    }
+    var ta = null;
+    var i = 0;
+    do {
+      ta = warMachineStruct.actuators[i++];
+    } while (i < warMachineStruct.actuators.length && ta.location.locationType != this.LOCATION_TYPE.Torso);    
+
+    this.rotate_actuator(ta, xAngle, yAngle, speed);
+  }
+
+  /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
    * @param {number} parentId - int32
    * @param {number} positionId - int32
@@ -794,6 +838,20 @@ var AbSdk = function() {
     var m = new p(loc, state, channelNumber, channelData, targetUser);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
     _send_message(mg);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.broadcast_comm_message = function(commStruct, channelNumber, data, targetId){
+    this.send_communication_request(this.LOCATION_TYPE.Cockpit,
+      0, // No parent
+      commStruct.index,
+      this.COMPONENT_STATE.Active, 
+      channelNumber, 
+      data, 
+      targetId
+    );
   }
 
   /**
@@ -815,6 +873,58 @@ var AbSdk = function() {
     _send_message(mg);
   }
 
+  // TODO: Document
+  this.lock_on_target = function(computerStruct, targetId){
+    this.send_computer_request(computerStruct.location.locationType,
+      computerStruct.location.parentId,
+      computerStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      targetId,
+      null,
+      null,
+      null
+    );    
+  }
+
+  // TODO: Document
+  this.clear_targets = function(computerStruct, targetIdList){
+    this.send_computer_request(computerStruct.location.locationType,
+      computerStruct.location.parentId,
+      computerStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      null,
+      targetIdList,
+      false,
+      false
+    );    
+  }
+
+  // TODO: Document
+  this.clear_primary_target = function(computerStruct){
+    this.send_computer_request(computerStruct.location.locationType,
+      computerStruct.location.parentId,
+      computerStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      null,
+      null,
+      true,
+      false
+    );    
+  }
+
+  // TODO: Document
+  this.clear_locked_target = function(computerStruct){
+    this.send_computer_request(computerStruct.location.locationType,
+      computerStruct.location.parentId,
+      computerStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      null,
+      null,
+      false,
+      true
+    );    
+  }
+
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
    * @param {number} parentId - int32
@@ -830,6 +940,22 @@ var AbSdk = function() {
     _send_message(mg);
   }
 
+  // TODO: Document
+  this.activate_counter_measure = function(counterMeasureStruct){
+    this.send_counter_measure_request(counterMeasureStruct.location.locationType, 
+      counterMeasureStruct.location.parentId, 
+      counterMeasureStruct.location.positionId, 
+      this.COMPONENT_STATE.Active)
+  }
+
+  // TODO: Document
+  this.deactivate_counter_measure = function(counterMeasureStruct){
+    this.send_counter_measure_request(counterMeasureStruct.location.locationType, 
+      counterMeasureStruct.location.parentId, 
+      counterMeasureStruct.location.positionId, 
+      this.COMPONENT_STATE.Inactive)
+  }
+
   /**
    * @param {?number} state - sdk.COMPONENT_STATE
    * @param {?number} velocity - target velocity
@@ -842,6 +968,13 @@ var AbSdk = function() {
   }
 
   /**
+   * TODO: Document
+   **/
+  this.set_speed = function(speed){
+    this.send_engine_request(null, speed);
+  }
+
+  /**
    * @param {?boolean} shutdown
    * @param {?number} rotation - float in degrees
    **/
@@ -850,6 +983,27 @@ var AbSdk = function() {
     var m = new p(shutdown, rotation);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitMechRequest, m);
     _send_message(mg);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.rotate = function(angle){
+    this.send_mech_request(false, angle);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.power_down = function(){
+    this.send_mech_request(true, null);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.power_up = function(){
+    this.send_mech_request(false, null);
   }
 
   /**
@@ -865,6 +1019,22 @@ var AbSdk = function() {
     var m = new p(loc, state);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
     _send_message(mg);
+  }
+
+  // TODO: Document
+  this.activate_sensor = function(sensorStruct){
+    this.send_sensor_request(sensorStruct.location.locationType, 
+      sensorStruct.location.parentId, 
+      sensorStruct.location.positionId, 
+      this.COMPONENT_STATE.Active)
+  }
+
+  // TODO: Document
+  this.deactivate_sensor = function(sensorStruct){
+    this.send_sensor_request(sensorStruct.location.locationType, 
+      sensorStruct.location.parentId, 
+      sensorStruct.location.positionId, 
+      this.COMPONENT_STATE.Inactive)
   }
 
   /**
@@ -917,69 +1087,7 @@ var AbSdk = function() {
       this.COMPONENT_STATE.Active,
       this.WEAPON_FIRE_STATE.Reload
     );
-  }
-
-  /**
-   * TODO: Document
-   **/
-  this.set_speed = function(speed){
-    this.send_engine_request(null, speed);
-  }
-
-  /**
-   * TODO: Document
-   **/
-  this.rotate = function(angle){
-    this.send_mech_request(false, angle);
-  }
-
-  /**
-   * TODO: Document
-   **/
-  this.broadcast_comm_message = function(commStruct, channelNumber, data, targetId){
-    this.send_communication_request(this.LOCATION_TYPE.Cockpit,
-      0, // No parent
-      commStruct.index,
-      this.COMPONENT_STATE.Active, 
-      channelNumber, 
-      data, 
-      targetId
-    );
-  }
-
-  /**
-   * TODO: Document
-   **/
-  this.rotate_actuator = function(actuatorStruct, xAngle, yAngle, speed){
-    this.send_actuator_request(actuatorStruct.location.locationType,
-      actuatorStruct.location.parentId,
-      actuatorStruct.location.positionId,
-      this.COMPONENT_STATE.Active,
-      xAngle,
-      yAngle,
-      speed
-    );
-  }
-
-  /**
-   * TODO: Document
-   **/
-  this.rotate_torso = function(xAngle, yAngle, speed, warMachineStruct){
-    if(warMachineStruct == null) {
-      if(null == internalWarMachine) {
-        self.log("(ERROR) No cached War Machine. Please use sdk.query_war_machine first");
-        return;
-      }
-      warMachineStruct = internalWarMachine;
-    }
-    var ta = null;
-    var i = 0;
-    do {
-      ta = warMachineStruct.actuators[i++];
-    } while (i < warMachineStruct.actuators.length && ta.location.locationType != this.LOCATION_TYPE.Torso);    
-
-    this.rotate_actuator(ta, xAngle, yAngle, speed);
-  }
+  }    
 };
 
 module.exports = new AbSdk();
