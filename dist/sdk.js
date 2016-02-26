@@ -913,7 +913,7 @@ var AbSdk = function() {
    * TODO: Document
    **/
   this.rotate = function(angle){
-    sdk.send_mech_request(false, angle);
+    this.send_mech_request(false, angle);
   }
 };
 
