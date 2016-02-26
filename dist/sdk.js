@@ -322,6 +322,13 @@ var AbSdk = function() {
         if (self.on_message_received) self.on_message_received(byteArray[0], message);
         break;
 
+      case self.MESSAGE_CODES.ServerCommunicationMessage:
+        var Proto = protobufBuilder.build("ServerCommunicationMessage");
+        var message = Proto.decode(byteArray.slice(3));
+        if (self.on_comm_message_received) self.on_comm_message_received(message);
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
+        break;
+
       default:
         self.log("(WARN) Unrecognized Message: " + byteArray[0]);
         if (self.on_message_received) self.on_message_received(byteArray[0], {});
@@ -439,6 +446,16 @@ var AbSdk = function() {
   * @param {string} errorsArray[].error_string
   **/
   this.on_configuration_commit_finished = function(errorsArray) {};
+
+  /**
+   * Triggers when the client receives broadcasted communications.
+   * Override with desired behavior.
+   * @param {object} message - An object with the following properties:
+      componentId: the Int32 ID of the receiving component
+      channel: the Int32 channel the communication came over
+      message: the payload of the communication as a byte array
+   */
+  this.on_comm_message_received = function(message) {};
 
   /**
    * Creates TCP Connection   
@@ -914,6 +931,54 @@ var AbSdk = function() {
    **/
   this.rotate = function(angle){
     this.send_mech_request(false, angle);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.broadcast_comm_message = function(commStruct, channelNumber, data, targetId){
+    this.send_communication_request(this.LOCATION_TYPE.Cockpit,
+      0, // No parent
+      commStruct.index,
+      this.COMPONENT_STATE.Active, 
+      channelNumber, 
+      data, 
+      targetId
+    );
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.rotate_actuator = function(actuatorStruct, xAngle, yAngle, speed){
+    this.send_actuator_request(actuatorStruct.location.locationType,
+      actuatorStruct.location.parentId,
+      actuatorStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      xAngle,
+      yAngle,
+      speed
+    );
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.rotate_torso = function(xAngle, yAngle, speed, warMachineStruct){
+    if(warMachineStruct == null) {
+      if(null == internalWarMachine) {
+        self.log("(ERROR) No cached War Machine. Please use sdk.query_war_machine first");
+        return;
+      }
+      warMachineStruct = internalWarMachine;
+    }
+    var ta = null;
+    var i = 0;
+    do {
+      ta = warMachineStruct.actuators[i++];
+    } while (i < warMachineStruct.actuators.length && ta.location.locationType != this.LOCATION_TYPE.Torso);    
+
+    this.rotate_actuator(ta, xAngle, yAngle, speed);
   }
 };
 

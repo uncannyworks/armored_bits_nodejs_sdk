@@ -5,8 +5,12 @@ var commit_configuration_finished = null;
 var inGame = false;
 
 var assign_hooks = function() {
-  sdk.on_message_received = function(code, message) {
-    console.log("Received: " + message_code_to_string(code));
+  sdk.on_message_received = function(code, message) {    
+    if ( code == sdk.MESSAGE_CODES.ServerSlugGenericResponse ) {
+      console.log("GENERIC: " + message.response + " " + message.error + " " + message.msgId);
+    } else {
+      console.log("Received: " + message_code_to_string(code));
+    }
   }
 
   sdk.on_message_sent = function(bytes) {
@@ -32,6 +36,12 @@ var assign_hooks = function() {
 
   sdk.on_connection_error = function(err) {
     console.log("Connection Error: " + err.message);
+  }
+
+  sdk.on_comm_message_received = function(message) {
+    console.log(message.componentId);
+    console.log(message.channel);
+    console.log(message.message);
   }
 
   sdk.on_configuration_phase_start = function() {
@@ -113,40 +123,42 @@ var query_wm = function() {
 var shooting = false;
 var ai_logic = function(mechState) {
   try {
-  var diff = process.hrtime(qt);
+    var diff = process.hrtime(qt);
 
-  console.log('Request took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
-  qt = process.hrtime();
+    console.log('Request took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
+    qt = process.hrtime();
 
-  sdk.send_engine_request(sdk.COMPONENT_STATE.Active, 100);
-  var weapons = mechState.weapons;
+    sdk.set_speed(100);
+    sdk.rotate_torso(0, 20, 100);
+    var weapons = mechState.weapons;
 
-  if (!shooting) {
-    shooting = true;
-    start_shooting(weapons[0], 500, 3000);
-  }
+    if (!shooting) {
+      shooting = true;
+      start_shooting(weapons[0], 500, 3000);    
+      sdk.broadcast_comm_message(mechState.communications[0], 1, "Herro!", null);
+    }
 
-  sdk.send_mech_request(false, 1);
+    sdk.rotate(1);
 
-  diff = process.hrtime(qt);
+    diff = process.hrtime(qt);
 
-  console.log('Logic took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
+    console.log('Logic took ' + ((diff[0] * 1e9 + diff[1]) / 1000000) + ' milliseconds');
 
   } catch(err) {
-    console.log("ERROR: " + err);
-  }
+    console.log("ERROR: " + err.stack);
+  }  
   query_wm();
 }
 
 var start_shooting = function(weapon, burst, delay) {
-  sdk.send_weapon_request(weapon.location.locationType, weapon.location.parentId, weapon.location.positionId, sdk.COMPONENT_STATE.Active, sdk.WEAPON_FIRE_STATE.Fire);
+  sdk.fire_weapon(weapon);
   setTimeout(function() {
     stop_shooting(weapon, burst, delay);
-  }, burst);
+  }, burst);  
 }
 
 var stop_shooting = function(weapon, burst, delay) {
-  sdk.send_weapon_request(weapon.location.locationType, weapon.location.parentId, weapon.location.positionId, sdk.COMPONENT_STATE.Active, sdk.WEAPON_FIRE_STATE.Idle);
+  sdk.idle_weapon(weapon);
   setTimeout(function() {
     start_shooting(weapon, burst, delay);
   }, delay);

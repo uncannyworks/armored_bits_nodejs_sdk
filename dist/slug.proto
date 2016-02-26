@@ -328,7 +328,7 @@ message SlugQueryMechResponse {
   repeated SlugQueryArmorMessage armors           = 9;
   repeated SlugQueryCapacitorMessage capacitors   = 10;
   required SlugQueryCockpitMessage cockpit        = 11;
-  repeated SlugQueryCommunicationMessage communicaitons   = 12;
+  repeated SlugQueryCommunicationMessage communications   = 12;
   repeated SlugQueryComputerMessage computers     = 13;
   repeated SlugQueryCounterMeasureMessage counterMeasures = 14;
   required SlugQueryEngineMessage engine          = 15;
