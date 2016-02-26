@@ -865,6 +865,56 @@ var AbSdk = function() {
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
     _send_message(mg);
   }
+
+  /**
+   * TODO: Document
+  **/
+  this.fire_weapon = function(weaponStruct) {
+    this.send_weapon_request(weaponStruct.location.locationType,
+      weaponStruct.location.parentId,
+      weaponStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      this.WEAPON_FIRE_STATE.Fire
+    );
+  }
+
+  /**
+   * TODO: Document
+  **/
+  this.idle_weapon = function(weaponStruct) {
+    this.send_weapon_request(weaponStruct.location.locationType,
+      weaponStruct.location.parentId,
+      weaponStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      this.WEAPON_FIRE_STATE.Idle
+    );
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.reload_weapon = function(weaponStruct) {
+    this.send_weapon_request(weaponStruct.location.locationType,
+      weaponStruct.location.parentId,
+      weaponStruct.location.positionId,
+      this.COMPONENT_STATE.Active,
+      this.WEAPON_FIRE_STATE.Reload
+    );
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.set_speed = function(speed){
+    this.send_engine_request(null, speed);
+  }
+
+  /**
+   * TODO: Document
+   **/
+  this.rotate = function(angle){
+    sdk.send_mech_request(false, angle);
+  }
 };
 
 module.exports = new AbSdk();
