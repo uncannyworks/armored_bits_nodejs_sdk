@@ -132,8 +132,9 @@ var ai_logic = function(mechState) {
     sdk.deactivate_counter_measure(mechState.counterMeasures[0]);
     sdk.set_speed(100);
     sdk.rotate(1);
-    sdk.power_down();
-    sdk.power_up();
+    sdk.power_down(100);
+    sdk.power_up(100);
+    sdk.self_destruct(100);
     sdk.activate_sensor(mechState.sensors[0]);
     sdk.deactivate_sensor(mechState.sensors[0]);
     sdk.fire_weapon(mechState.weapons[0]);
@@ -152,6 +153,7 @@ var message_code_to_string = function(code) {
       return i;
     }
   }
+  return "UNKNOWN (" + code + ")";
 }
 
 assign_hooks();
