@@ -50,31 +50,30 @@ var assign_hooks = function() {
     // Torso
     // Our torso model supports 1 weapon.
     var weaponsArray = [];
-    weaponsArray.push(sdk.make_weapon("Weapon Type A", "", "Projectile Type A"));
-    var torso_message = sdk.build_config_torso_message("Torso Type A", "TE003", "Armor Type A", weaponsArray, ["Counter Measure Type A"], "Actuator Type A");
+    weaponsArray.push(sdk.make_weapon("UW Pew", "WEPN-UNIV-T", "", "UW Energy"));
+    var torso_message = sdk.build_config_torso_message("UW Axial H", "UW Expedition", "UW Standard", weaponsArray, ["UW Simply Safe"], "UW Disc");
 
     // Cockpit
-    var cockpit_message = sdk.build_config_cockpit_message("Cockpit Type A", ["Computer Type A"], ["Sensor Type A"], ["Communication Type A"], "Armor Type A", ["Counter Measure Type A"]);
+    var cockpit_message = sdk.build_config_cockpit_message("UW Generic", ["UW Elementary Edition"], ["UW Megane"], ["UW Radio"], "UW Standard", ["UW Simply Safe"]);
 
     // Arms
-    var armsArray = [];
-    for (var i = 0; i < 2; i++) { // Our chassis model only has 2 arms.
-      // Our arms support 1 weapons each.
-      var armWeaponsArray = [];
-      armWeaponsArray.push(sdk.make_weapon("Weapon Type A", "", "Projectile Type A"));
-      armsArray.push(sdk.make_arm("Arm Type A", "Armor Type A", armWeaponsArray, ["Counter Measure Type A"], i + 1));
-    }
+    var armsArray = [];    
+    // Our arms support 1 weapons each.
+    var armWeaponsArray = [];
+    armWeaponsArray.push(sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB"));
+    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-L", "UW Standard", armWeaponsArray, ["UW Simply Safe"]));
+    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-R", "UW Standard", armWeaponsArray, ["UW Simply Safe"]));
+    
     var arm_messages = sdk.build_config_arm_messages(armsArray);
 
     // Legs
     var legsArray = [];
-    for (var i = 0; i < 2; i++) { // Our chassis model only has 2 legs.      
-      legsArray.push(sdk.make_leg("Leg Type A", "Armor Type A", i + 1));
-    }
+    legsArray.push(sdk.make_leg("UW Touring", "LEGS-UNIV-L", "UW Standard"));
+    legsArray.push(sdk.make_leg("UW Touring", "LEGS-UNIV-R", "UW Standard"));
     var leg_messages = sdk.build_config_leg_messages(legsArray);
 
     // Full Request
-    var config_message = this.build_config_mech_request("Mech Type A", "Capacitor Type A", "Gyro Type A", "KYR011", torso_message, cockpit_message, arm_messages, leg_messages);
+    var config_message = this.build_config_mech_request("UW Haru", "UW Conventional", "UW Upright", "UW Midori", torso_message, cockpit_message, arm_messages, leg_messages);
 
     sdk.commit_configuration(config_message);
   }

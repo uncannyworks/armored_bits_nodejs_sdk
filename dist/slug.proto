@@ -55,6 +55,7 @@ message SlugConfigureArmMessage {
   required string armorModel                  = 2;
   repeated SlugConfigureWeaponMessage weapons = 3;
   repeated string counterMeasureModels        = 4;
+  required string armProtocol                 = 5;
 }
 
 message SlugConfigureCockpitMessage {
@@ -69,6 +70,7 @@ message SlugConfigureCockpitMessage {
 message SlugConfigureLegMessage {
   required string legModel    = 1;
   required string armorModel  = 2;
+  required string legProtocol = 3;
 }
 
 message SlugConfigureTorsoMessage  {
@@ -84,6 +86,7 @@ message SlugConfigureWeaponMessage {
   required string weaponModel    = 1;
   optional string capacitorModel = 2;
   required string ammoModel      = 3;
+  required string weaponProtocol = 4;
 }
 
 message SlugConfigureMechRequest {
@@ -113,15 +116,15 @@ message ActiveComponentMessage {
   required int32 powerDrawActive = 3;
 }
 
+message ActiveTargetMessage {
+  required int32 targetId               = 1;
+  required VectorMessage targetPosition = 2;
+}
+
 message SlugQueryLocationMessage {
   required int32 locationType = 1;
   required int32 locationId   = 2;
   required int32 positionId   = 3;
-}
-
-message ActiveTargetMessage {
-  required int32 targetId               = 1;
-  required VectorMessage targetPosition = 2;
 }
 
 message SlugQueryActuatorMessage {
@@ -316,4 +319,43 @@ message ServerSlugGenericResponse {
   required int32 response = 1;
   optional int32 error    = 2;
   required int32 msgId    = 3;
+}
+
+message ServerSlugOOBMessage {
+  required float timeLeft = 1;
+}
+
+message ObjectSpawnParent {
+  required int32 ospParentId = 1;
+  required int32 ospWeaponId = 2;
+}
+
+// 5
+message ServerClientObjectSpawnMessage {
+  required int32 objectId                    = 1;
+  required int32 objectType                  = 2;
+  required VectorMessage position            = 3;
+  required VectorMessage rotation            = 4;
+  optional int32 userId                      = 5;
+  optional SlugConfigureMechRequest mechData = 6;
+  optional ObjectSpawnParent spawnParent     = 7;
+}
+
+// 6
+message ServerClientObjectMoveMessage {
+  required int32         objectId = 1;
+  required VectorMessage position = 2;
+  required VectorMessage rotation = 3;
+}
+
+// 7
+message ServerClientObjectDestroyMessage {
+  required int32 objectId   = 1;
+  required int32 objectType = 2;
+}
+
+// 8
+message ServerClientMechUpdateMessage {
+  required int32 mechUpdateId                   = 1;
+  required SlugQueryMechResponse mechUpdateData = 2;
 }

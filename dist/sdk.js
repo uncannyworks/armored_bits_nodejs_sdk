@@ -585,7 +585,7 @@ var AbSdk = function() {
     var weapon = protobufBuilder.build("SlugConfigureWeaponMessage");
     var protoWeapons = [];
     weaponsArray.forEach(function(val) {
-      protoWeapons.push(new weapon(val.weaponModel, val.capacitorModel, val.ammoModel));
+      protoWeapons.push(new weapon(val.weaponModel, val.capacitorModel, val.ammoModel, val.weaponProtocol));
     });
     return new torso(torsoModel, engineModel, armorModel, protoWeapons, counterMeasureModels, actuatorModel);
   }
@@ -624,9 +624,9 @@ var AbSdk = function() {
     armsArray.forEach(function(a) {
       var protoWeapons = [];
       a.weapons.forEach(function(w) {
-        protoWeapons.push(new wep(w.weaponModel, w.capacitorModel, w.ammoModel));
+        protoWeapons.push(new wep(w.weaponModel, w.capacitorModel, w.ammoModel, w.weaponProtocol));
       });
-      protoArms.push(new arm(a.armModel, a.armorModel, protoWeapons, a.counterMeasureModels));
+      protoArms.push(new arm(a.armModel, a.armorModel, protoWeapons, a.counterMeasureModels, a.armProtocol));
     });
     return protoArms;
   }
@@ -642,7 +642,7 @@ var AbSdk = function() {
     var leg = protobufBuilder.build("SlugConfigureLegMessage");
     var protoLegs = [];
     legsArray.forEach(function(l) {
-      protoLegs.push(new leg(l.legModel, l.armorModel));
+      protoLegs.push(new leg(l.legModel, l.legProtocol, l.armorModel));
     });
     return protoLegs;
   }
@@ -711,26 +711,30 @@ var AbSdk = function() {
   /**
    * Shortcut to create a weapon object.
    * @param {string} weaponModel - Weapon model number.
+   * @param {string} plugProtocol - Plug protocol this arms is going to use.
    * @param {string} [capacitorModel] - Capacitor model number.  
    * @returns {object} - Weapon struct 
    */
-  this.make_weapon = function(weaponModel, capacitorModel, ammoModel) {
+  this.make_weapon = function(weaponModel, plugProtocol, capacitorModel, ammoModel) {
     if (capacitorModel)
       return {
         'weaponModel': weaponModel,
         'capacitorModel': capacitorModel,
-        'ammoModel': ammoModel
+        'ammoModel': ammoModel,
+        'weaponProtocol': plugProtocol
       };
     return {
       'weaponModel': weaponModel,
       'capacitorModel': "",
-      'ammoModel': ammoModel
+      'ammoModel': ammoModel,
+      'weaponProtocol': plugProtocol
     };
   }
 
   /**
    * Shortcut to create an arm object.
    * @param {string} armModel - Arm model number.
+   * @param {string} plugProtocol - Plug protocol this arms is going to use.
    * @param {string} armorModel - Armor model number.   
    * @param {object[]} weaponList - The weapons attached to this arm.
    * @param {string} weaponList[].weaponModel - This weapon's model number.
@@ -738,25 +742,28 @@ var AbSdk = function() {
    * @param {string[]} counterMeasureModels - Counter measure model numbers.   
    * @returns {object} - Arm struct 
    */
-  this.make_arm = function(armModel, armorModel, weaponList, counterMeasureModels) {
+  this.make_arm = function(armModel, plugProtocol, armorModel, weaponList, counterMeasureModels) {
     return {
       'armModel': armModel,
       'armorModel': armorModel,
       'weapons': weaponList,
-      'counterMeasureModels': counterMeasureModels
+      'counterMeasureModels': counterMeasureModels,
+      'armProtocol': plugProtocol
     };
   }
 
   /**
    * Shortcut to create a leg object.
    * @param {string} legModel - Leg model number.
+   * @param {string} plugProtocol - Plug protocol this arms is going to use.
    * @param {string} armorModel - Armor model number.
    * @returns {object} - Leg struct 
    */
-  this.make_leg = function(legModel, armorModel) {
+  this.make_leg = function(legModel, plugProtocol, armorModel) {
     return {
       'legModel': legModel,
-      'armorModel': armorModel
+      'armorModel': armorModel,
+      'legProtocol': plugProtocol
     };
   }
 
