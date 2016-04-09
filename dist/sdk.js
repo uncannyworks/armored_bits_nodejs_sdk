@@ -61,6 +61,7 @@ var AbSdk = function() {
     ServerStateMessage: 1,
     ServerWorldStateMessage: 2,
     ServerCommunicationMessage: 5,
+    ServerSlugOOBMessage: 6,
     SlugConfigureMechRequest: 20,
     SlugConfigureDoneRequest: 30,
     SlugQueryMechRequest: 50,
@@ -342,6 +343,13 @@ var AbSdk = function() {
         if (self.on_message_received) self.on_message_received(byteArray[0], message);
         break;
 
+      case self.MESSAGE_CODES.ServerSlugOOBMessage:
+        var Proto = protobufBuilder.build("ServerSlugOOBMessage");
+        var message = Proto.decode(byteArray.slice(3));
+        if (self.on_oob_received) self.on_oob_received(message);
+        if (self.on_message_received) self.on_message_received(byteArray[0], message);
+        break;
+
       default:
         self.log("(WARN) Unrecognized Message: " + byteArray[0]);
         if (self.on_message_received) self.on_message_received(byteArray[0], {});
@@ -385,6 +393,13 @@ var AbSdk = function() {
    * @param {object} message - the message JSON.
    */
   this.on_message_received = function(code, message) {}
+
+  /**
+   * Triggers when the client receives an Out of Bounds message.
+   * Override with desired behavior.
+   * @param {object} message - the message JSON.
+   */
+  this.on_oob_received = function(message) {}
 
   /**
    * Triggers when the client sends ANY message.
