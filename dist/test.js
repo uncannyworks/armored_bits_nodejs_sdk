@@ -47,6 +47,10 @@ var assign_hooks = function() {
   sdk.on_configuration_phase_start = function() {
     console.log("Configuration Phase Start...");
 
+    // TODO: Remove. This is for fast debugging.
+    //sdk.use_default_configuration();
+    //return;
+
     // Torso
     // Our torso model supports 1 weapon.
     var weaponsArray = [];
@@ -59,10 +63,8 @@ var assign_hooks = function() {
     // Arms
     var armsArray = [];    
     // Our arms support 1 weapons each.
-    var armWeaponsArray = [];
-    armWeaponsArray.push(sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB"));
-    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-L", "UW Standard", armWeaponsArray, ["UW Simply Safe"]));
-    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-R", "UW Standard", armWeaponsArray, ["UW Simply Safe"]));
+    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-L", "UW Standard", [sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB")], ["UW Simply Safe"]));
+    armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-R", "UW Standard", [sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB")], ["UW Simply Safe"]));
     
     var arm_messages = sdk.build_config_arm_messages(armsArray);
 

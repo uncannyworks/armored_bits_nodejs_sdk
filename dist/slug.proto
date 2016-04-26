@@ -256,9 +256,9 @@ message SlugQueryWeaponMessage {
   required float rangeLow                         = 14;
   required float rangeMid                         = 15;
   required float rangeHigh                        = 16;
-  required float damageLow                        = 17;
-  required float damageMid                        = 18;
-  required float damageHigh                       = 19;
+  required int32 damageLow                        = 17;
+  required int32 damageMid                        = 18;
+  required int32 damageHigh                       = 19;
   required int32 firedCount                       = 20;
 }
 
