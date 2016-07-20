@@ -81,7 +81,7 @@ message SlugConfigureTorsoMessage  {
   repeated string counterMeasureModels        = 5;
   required string actuatorModel               = 6;
 }
- 
+
 message SlugConfigureWeaponMessage {
   required string weaponModel    = 1;
   optional string capacitorModel = 2;
@@ -240,26 +240,27 @@ message SlugQueryTorsoMessage {
 }
 
 message SlugQueryWeaponMessage {
-  required SlugQueryLocationMessage location      = 1;
-  required int32 state                            = 2;
-  required ActiveComponentMessage activeComponent = 3;
-  required int32 fireState                        = 4;  
-  required bool hasCapacitor                      = 5;
-  required float fireRate                         = 6; 
-  required float firedLast                        = 7; 
-  required int32 ammoMax                          = 8;
-  required int32 ammoCurrent                      = 9;
-  required int32 clipMax                          = 10;
-  required int32 clipCurrent                      = 11;
-  required float reloadRate                       = 12;
-  required float unJamChance                      = 13;
-  required float rangeLow                         = 14;
-  required float rangeMid                         = 15;
-  required float rangeHigh                        = 16;
-  required int32 damageLow                        = 17;
-  required int32 damageMid                        = 18;
-  required int32 damageHigh                       = 19;
-  required int32 firedCount                       = 20;
+  required int32 componentId                      = 1;
+  required SlugQueryLocationMessage location      = 2;
+  required int32 state                            = 3;
+  required ActiveComponentMessage activeComponent = 4;
+  required int32 fireState                        = 5;
+  required bool hasCapacitor                      = 6;
+  required float fireRate                         = 7;
+  required float firedLast                        = 8;
+  required int32 ammoMax                          = 9;
+  required int32 ammoCurrent                      = 10;
+  required int32 clipMax                          = 11;
+  required int32 clipCurrent                      = 12;
+  required float reloadRate                       = 13;
+  required float unJamChance                      = 14;
+  required float rangeLow                         = 15;
+  required float rangeMid                         = 16;
+  required float rangeHigh                        = 17;
+  required int32 damageLow                        = 18;
+  required int32 damageMid                        = 19;
+  required int32 damageHigh                       = 20;
+  required int32 firedCount                       = 21;
 }
 
 // empty message
