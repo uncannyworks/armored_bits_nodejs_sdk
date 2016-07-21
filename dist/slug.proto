@@ -142,9 +142,10 @@ message SlugQueryActuatorMessage {
 }
 
 message SlugQueryArmMessage {
-  required int32 index     = 1;
-  required int32 state    = 2;
-  required bool hasStorage = 3;
+  required SlugQueryLocationMessage location = 1;
+  required int32 index                       = 2;
+  required int32 state                       = 3;
+  required bool hasStorage                   = 4;
 }
 
 message SlugQueryArmorMessage {
