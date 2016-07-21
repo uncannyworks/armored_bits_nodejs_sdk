@@ -166,7 +166,7 @@ var AbSdk = function() {
     Cockpit: 2,
     Leg: 3,
     Torso: 4,
-    Weapon: 5    
+    Weapon: 5
   }
 
   /**
@@ -216,7 +216,7 @@ var AbSdk = function() {
     }
   }
 
-  var _build_message = function(code, message) {    
+  var _build_message = function(code, message) {
     var buff = new protobuf.ByteBuffer(0);
     if (message) {
       buff = message.encode();
@@ -486,7 +486,7 @@ var AbSdk = function() {
   this.on_comm_message_received = function(message) {};
 
   /**
-   * Creates TCP Connection   
+   * Creates TCP Connection
    * @param {string} port - Connection port.
    * @param {string} ip - Connection IP Address.
    * @param {string} username - Authentication User Name.
@@ -571,7 +571,7 @@ var AbSdk = function() {
    * Builds mech configuration protobuf request.
    * @param {string} chassisModel - Chassis model number.
    * @param {string} capacitorModel - Capacitor model number. Use "" for none.
-   * @param {string} gyroModel - Gyroscope model number.   
+   * @param {string} gyroModel - Gyroscope model number.
    * @param {string} reactorModel - Reactor model number.
    * @param {object} configureTorsoMessage - Built with sdk.build_config_torso_message
    * @param {object} configureCockpitMessage - Built with sdk.build_config_cockpit_message
@@ -609,7 +609,7 @@ var AbSdk = function() {
    * Builds cockpit configuration protobuf message.
    * @param {string} cockpitModel - Cockpit model number.
    * @param {string[]} computerModels - Computer model numbers.
-   * @param {string[]} sensorModels - Sensor model numbers.   
+   * @param {string[]} sensorModels - Sensor model numbers.
    * @param {string[]} communicationModels - Communication model numbers.
    * @param {string} armorModel - Armor model number.
    * @param {string[]} counterMeasureModels - Counter measure model numbers.
@@ -650,7 +650,7 @@ var AbSdk = function() {
    * Builds array of leg configuration protobuf messages.
    * @param {object[]} legsArray - The legs to attach to this torso.
    * @param {string} legsArray[].legModel - Model number of this leg.
-   * @param {string} legsArray[].armorModel - Model number of this leg's armor.   
+   * @param {string} legsArray[].armorModel - Model number of this leg's armor.
    * @returns {object[]} array of SlugConfigureLegMessage protobuf messages
    */
   this.build_config_leg_messages = function(legsArray) {
@@ -727,8 +727,8 @@ var AbSdk = function() {
    * Shortcut to create a weapon object.
    * @param {string} weaponModel - Weapon model number.
    * @param {string} plugProtocol - Plug protocol this arms is going to use.
-   * @param {string} [capacitorModel] - Capacitor model number.  
-   * @returns {object} - Weapon struct 
+   * @param {string} [capacitorModel] - Capacitor model number.
+   * @returns {object} - Weapon struct
    */
   this.make_weapon = function(weaponModel, plugProtocol, capacitorModel, ammoModel) {
     if (capacitorModel)
@@ -750,12 +750,12 @@ var AbSdk = function() {
    * Shortcut to create an arm object.
    * @param {string} armModel - Arm model number.
    * @param {string} plugProtocol - Plug protocol this arms is going to use.
-   * @param {string} armorModel - Armor model number.   
+   * @param {string} armorModel - Armor model number.
    * @param {object[]} weaponList - The weapons attached to this arm.
    * @param {string} weaponList[].weaponModel - This weapon's model number.
    * @param {string} weaponList[].capacitorModel - This weapon's capacitor model number.
-   * @param {string[]} counterMeasureModels - Counter measure model numbers.   
-   * @returns {object} - Arm struct 
+   * @param {string[]} counterMeasureModels - Counter measure model numbers.
+   * @returns {object} - Arm struct
    */
   this.make_arm = function(armModel, plugProtocol, armorModel, weaponList, counterMeasureModels) {
     return {
@@ -772,7 +772,7 @@ var AbSdk = function() {
    * @param {string} legModel - Leg model number.
    * @param {string} plugProtocol - Plug protocol this arms is going to use.
    * @param {string} armorModel - Armor model number.
-   * @returns {object} - Leg struct 
+   * @returns {object} - Leg struct
    */
   this.make_leg = function(legModel, plugProtocol, armorModel) {
     return {
@@ -814,7 +814,7 @@ var AbSdk = function() {
   this.send_actuator_request = function(locationType, locationId, positionId, state, rotateX, rotateY, speed) {
     var p = protobufBuilder.build("SlugCommitActuatorRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state, rotateX, rotateY, speed);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitActuatorRequest, m);
     _send_message(mg);
@@ -849,7 +849,7 @@ var AbSdk = function() {
     var i = 0;
     do {
       ta = warMachineStruct.actuators[i++];
-    } while (i < warMachineStruct.actuators.length && ta.location.locationType != this.LOCATION_TYPE.Torso);    
+    } while (i < warMachineStruct.actuators.length && ta.location.locationType != this.LOCATION_TYPE.Torso);
 
     this.rotate_actuator(ta, xAngle, yAngle, speed);
   }
@@ -866,7 +866,7 @@ var AbSdk = function() {
   this.send_communication_request = function(locationType, locationId, positionId, state, channelNumber, channelData, targetUser) {
     var p = protobufBuilder.build("SlugCommitCommunicationRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state, channelNumber, channelData, targetUser);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
     _send_message(mg);
@@ -879,9 +879,9 @@ var AbSdk = function() {
     this.send_communication_request(commStruct.location.locationType,
       commStruct.location.locationId,
       commStruct.location.positionId,
-      this.COMPONENT_STATE.Active, 
-      channelNumber, 
-      data, 
+      this.COMPONENT_STATE.Active,
+      channelNumber,
+      data,
       targetId
     );
   }
@@ -899,7 +899,7 @@ var AbSdk = function() {
   this.send_computer_request = function(locationType, locationId, positionId, state, target, clearTargets, clearPrimary, clearLocked) {
     var p = protobufBuilder.build("SlugCommitComputerRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state, target, clearTargets, clearPrimary, clearLocked);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitComputerRequest, m);
     _send_message(mg);
@@ -915,7 +915,7 @@ var AbSdk = function() {
       null,
       null,
       null
-    );    
+    );
   }
 
   // TODO: Document
@@ -928,7 +928,7 @@ var AbSdk = function() {
       targetIdList,
       false,
       false
-    );    
+    );
   }
 
   // TODO: Document
@@ -941,7 +941,7 @@ var AbSdk = function() {
       null,
       true,
       false
-    );    
+    );
   }
 
   // TODO: Document
@@ -954,7 +954,7 @@ var AbSdk = function() {
       null,
       false,
       true
-    );    
+    );
   }
 
   /**
@@ -966,7 +966,7 @@ var AbSdk = function() {
   this.send_counter_measure_request = function(locationType, locationId, positionId, state) {
     var p = protobufBuilder.build("SlugCommitCounterMeasureRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitCounterMeasureRequest, m);
     _send_message(mg);
@@ -974,17 +974,17 @@ var AbSdk = function() {
 
   // TODO: Document
   this.activate_counter_measure = function(counterMeasureStruct){
-    this.send_counter_measure_request(counterMeasureStruct.location.locationType, 
-      counterMeasureStruct.location.locationId, 
-      counterMeasureStruct.location.positionId, 
+    this.send_counter_measure_request(counterMeasureStruct.location.locationType,
+      counterMeasureStruct.location.locationId,
+      counterMeasureStruct.location.positionId,
       this.COMPONENT_STATE.Active)
   }
 
   // TODO: Document
   this.deactivate_counter_measure = function(counterMeasureStruct){
-    this.send_counter_measure_request(counterMeasureStruct.location.locationType, 
-      counterMeasureStruct.location.locationId, 
-      counterMeasureStruct.location.positionId, 
+    this.send_counter_measure_request(counterMeasureStruct.location.locationType,
+      counterMeasureStruct.location.locationId,
+      counterMeasureStruct.location.positionId,
       this.COMPONENT_STATE.Inactive)
   }
 
@@ -1055,7 +1055,7 @@ var AbSdk = function() {
   this.send_sensor_request = function(locationType, locationId, positionId, state) {
     var p = protobufBuilder.build("SlugCommitSensorRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
     _send_message(mg);
@@ -1063,17 +1063,17 @@ var AbSdk = function() {
 
   // TODO: Document
   this.activate_sensor = function(sensorStruct){
-    this.send_sensor_request(sensorStruct.location.locationType, 
-      sensorStruct.location.locationId, 
-      sensorStruct.location.positionId, 
+    this.send_sensor_request(sensorStruct.location.locationType,
+      sensorStruct.location.locationId,
+      sensorStruct.location.positionId,
       this.COMPONENT_STATE.Active)
   }
 
   // TODO: Document
   this.deactivate_sensor = function(sensorStruct){
-    this.send_sensor_request(sensorStruct.location.locationType, 
-      sensorStruct.location.locationId, 
-      sensorStruct.location.positionId, 
+    this.send_sensor_request(sensorStruct.location.locationType,
+      sensorStruct.location.locationId,
+      sensorStruct.location.positionId,
       this.COMPONENT_STATE.Inactive)
   }
 
@@ -1087,7 +1087,7 @@ var AbSdk = function() {
   this.send_weapon_request = function(locationType, locationId, positionId, state, fireState) {
     var p = protobufBuilder.build("SlugCommitWeaponRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, locationId, positionId);
+    var loc = new l(locationType, locationId, positionId, 0);
     var m = new p(loc, state, fireState);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
     _send_message(mg);
@@ -1127,7 +1127,7 @@ var AbSdk = function() {
       this.COMPONENT_STATE.Active,
       this.WEAPON_FIRE_STATE.Reload
     );
-  }    
+  }
 };
 
 module.exports = new AbSdk();
