@@ -123,8 +123,8 @@ message ActiveTargetMessage {
 
 message SlugQueryLocationMessage {
   required int32 locationType = 1;
-  required int32 parentId     = 2;
-  required int32 componentId  = 3;
+  required int32 componentId  = 2;
+  required int32 parentId     = 3;
   optional string socket      = 4;
 }
 

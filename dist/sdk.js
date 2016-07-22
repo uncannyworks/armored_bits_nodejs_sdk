@@ -804,17 +804,17 @@ var AbSdk = function() {
 
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {?number} state - int32 - sdk.COMPONENT_STATE
    * @param {?number} rotateX - float in degrees
    * @param {?number} rotateY - float in degrees
    * @param {?number} speed - float in degrees
    */
-  this.send_actuator_request = function(locationType, parentId, componentId, state, rotateX, rotateY, speed) {
+  this.send_actuator_request = function(locationType, componentId, parentId, state, rotateX, rotateY, speed) {
     var p = protobufBuilder.build("SlugCommitActuatorRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state, rotateX, rotateY, speed);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitActuatorRequest, m);
     _send_message(mg);
@@ -825,8 +825,8 @@ var AbSdk = function() {
    **/
   this.rotate_actuator = function(actuatorStruct, xAngle, yAngle, speed){
     this.send_actuator_request(actuatorStruct.location.locationType,
-      actuatorStruct.location.parentId,
       actuatorStruct.location.componentId,
+      actuatorStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       xAngle,
       yAngle,
@@ -856,17 +856,17 @@ var AbSdk = function() {
 
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {?number} state - int32 - sdk.COMPONENT_STATE
    * @param {?number} channelNumber - int32
    * @param {?byte[]} channelData
    * @param {?number} targetUser - int32
    **/
-  this.send_communication_request = function(locationType, parentId, componentId, state, channelNumber, channelData, targetUser) {
+  this.send_communication_request = function(locationType, componentId, parentId, state, channelNumber, channelData, targetUser) {
     var p = protobufBuilder.build("SlugCommitCommunicationRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state, channelNumber, channelData, targetUser);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitCommunicationRequest, m);
     _send_message(mg);
@@ -877,8 +877,8 @@ var AbSdk = function() {
    **/
   this.broadcast_comm_message = function(commStruct, channelNumber, data, targetId){
     this.send_communication_request(commStruct.location.locationType,
-      commStruct.location.parentId,
       commStruct.location.componentId,
+      commStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       channelNumber,
       data,
@@ -888,18 +888,18 @@ var AbSdk = function() {
 
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {?number} state - int32 - sdk.COMPONENT_STATE
    * @param {?number} target - int32
    * @param {?number[]} clearTargets - int32
    * @param {?boolean} clearPrimary
    * @param {?boolean} clearLocked
    **/
-  this.send_computer_request = function(locationType, parentId, componentId, state, target, clearTargets, clearPrimary, clearLocked) {
+  this.send_computer_request = function(locationType, componentId, parentId, state, target, clearTargets, clearPrimary, clearLocked) {
     var p = protobufBuilder.build("SlugCommitComputerRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state, target, clearTargets, clearPrimary, clearLocked);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitComputerRequest, m);
     _send_message(mg);
@@ -908,8 +908,8 @@ var AbSdk = function() {
   // TODO: Document
   this.lock_on_target = function(computerStruct, targetId){
     this.send_computer_request(computerStruct.location.locationType,
-      computerStruct.location.parentId,
       computerStruct.location.componentId,
+      computerStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       targetId,
       null,
@@ -921,8 +921,8 @@ var AbSdk = function() {
   // TODO: Document
   this.clear_targets = function(computerStruct, targetIdList){
     this.send_computer_request(computerStruct.location.locationType,
-      computerStruct.location.parentId,
       computerStruct.location.componentId,
+      computerStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       null,
       targetIdList,
@@ -934,8 +934,8 @@ var AbSdk = function() {
   // TODO: Document
   this.clear_primary_target = function(computerStruct){
     this.send_computer_request(computerStruct.location.locationType,
-      computerStruct.location.parentId,
       computerStruct.location.componentId,
+      computerStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       null,
       null,
@@ -947,8 +947,8 @@ var AbSdk = function() {
   // TODO: Document
   this.clear_locked_target = function(computerStruct){
     this.send_computer_request(computerStruct.location.locationType,
-      computerStruct.location.parentId,
       computerStruct.location.componentId,
+      computerStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       null,
       null,
@@ -959,14 +959,14 @@ var AbSdk = function() {
 
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {number} state - int32 - sdk.COMPONENT_STATE
    **/
-  this.send_counter_measure_request = function(locationType, parentId, componentId, state) {
+  this.send_counter_measure_request = function(locationType, componentId, parentId, state) {
     var p = protobufBuilder.build("SlugCommitCounterMeasureRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitCounterMeasureRequest, m);
     _send_message(mg);
@@ -975,16 +975,16 @@ var AbSdk = function() {
   // TODO: Document
   this.activate_counter_measure = function(counterMeasureStruct){
     this.send_counter_measure_request(counterMeasureStruct.location.locationType,
-      counterMeasureStruct.location.parentId,
       counterMeasureStruct.location.componentId,
+      counterMeasureStruct.location.parentId,
       this.COMPONENT_STATE.Active)
   }
 
   // TODO: Document
   this.deactivate_counter_measure = function(counterMeasureStruct){
     this.send_counter_measure_request(counterMeasureStruct.location.locationType,
-      counterMeasureStruct.location.parentId,
       counterMeasureStruct.location.componentId,
+      counterMeasureStruct.location.parentId,
       this.COMPONENT_STATE.Inactive)
   }
 
@@ -1048,14 +1048,14 @@ var AbSdk = function() {
 
   /**
    * @param {number} locationType - int32
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {?number} state - int32 - sdk.COMPONENT_STATE
    **/
-  this.send_sensor_request = function(locationType, parentId, componentId, state) {
+  this.send_sensor_request = function(locationType, componentId, parentId, state) {
     var p = protobufBuilder.build("SlugCommitSensorRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitSensorRequest, m);
     _send_message(mg);
@@ -1064,30 +1064,30 @@ var AbSdk = function() {
   // TODO: Document
   this.activate_sensor = function(sensorStruct){
     this.send_sensor_request(sensorStruct.location.locationType,
-      sensorStruct.location.parentId,
       sensorStruct.location.componentId,
+      sensorStruct.location.parentId,
       this.COMPONENT_STATE.Active)
   }
 
   // TODO: Document
   this.deactivate_sensor = function(sensorStruct){
     this.send_sensor_request(sensorStruct.location.locationType,
-      sensorStruct.location.parentId,
       sensorStruct.location.componentId,
+      sensorStruct.location.parentId,
       this.COMPONENT_STATE.Inactive)
   }
 
   /**
    * @param {number} locationType - int32 - sdk.LOCATION_TYPE
-   * @param {number} parentId - int32
    * @param {number} componentId - int32
+   * @param {number} parentId - int32
    * @param {?number} state - int32 - sdk.COMPONENT_STATE
    * @param {?number} fireState - int32 - sdk.WEAPON_FIRE_STATE
    **/
-  this.send_weapon_request = function(locationType, parentId, componentId, state, fireState) {
+  this.send_weapon_request = function(locationType, componentId, parentId, state, fireState) {
     var p = protobufBuilder.build("SlugCommitWeaponRequest");
     var l = protobufBuilder.build("SlugQueryLocationMessage");
-    var loc = new l(locationType, parentId, componentId, "");
+    var loc = new l(locationType, componentId, parentId, "");
     var m = new p(loc, state, fireState);
     var mg = _build_message(this.MESSAGE_CODES.SlugCommitWeaponRequest, m);
     _send_message(mg);
@@ -1098,8 +1098,8 @@ var AbSdk = function() {
   **/
   this.fire_weapon = function(weaponStruct) {
     this.send_weapon_request(weaponStruct.location.locationType,
-      weaponStruct.location.parentId,
       weaponStruct.location.componentId,
+      weaponStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       this.WEAPON_FIRE_STATE.Fire
     );
@@ -1110,8 +1110,8 @@ var AbSdk = function() {
   **/
   this.idle_weapon = function(weaponStruct) {
     this.send_weapon_request(weaponStruct.location.locationType,
-      weaponStruct.location.parentId,
       weaponStruct.location.componentId,
+      weaponStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       this.WEAPON_FIRE_STATE.Idle
     );
@@ -1122,8 +1122,8 @@ var AbSdk = function() {
    **/
   this.reload_weapon = function(weaponStruct) {
     this.send_weapon_request(weaponStruct.location.locationType,
-      weaponStruct.location.parentId,
       weaponStruct.location.componentId,
+      weaponStruct.location.parentId,
       this.COMPONENT_STATE.Active,
       this.WEAPON_FIRE_STATE.Reload
     );
