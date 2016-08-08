@@ -359,9 +359,9 @@ var AbSdk = function() {
     }
   }
 
-  var _authenticate = function(username, password) {
+  var _authenticate = function(username) {
     var Proto = protobufBuilder.build("SlugActionLoginRequest");
-    var authMessage = new Proto("gameid", "slugid", "UserName");
+    var authMessage = new Proto(process.env.TOKEN, username);
 
     var message = _build_message(self.MESSAGE_CODES.SlugActionLoginRequest, authMessage);
 
@@ -492,7 +492,7 @@ var AbSdk = function() {
    * @param {string} username - Authentication User Name.
    * @param {string} password - Authentication Password.
    */
-  this.connect = function(port, ip, username, password) {
+  this.connect = function(port, ip, username) {
     var sdk = this;
 
     client = new net.Socket();
@@ -547,7 +547,7 @@ var AbSdk = function() {
     });
 
     client.on('connect', function() {
-      _authenticate(username, password);
+      _authenticate(username);
     });
 
     client.on('close', function() {

@@ -5,7 +5,7 @@ var commit_configuration_finished = null;
 var inGame = false;
 
 var assign_hooks = function() {
-  sdk.on_message_received = function(code, message) {    
+  sdk.on_message_received = function(code, message) {
     if ( code == sdk.MESSAGE_CODES.ServerSlugGenericResponse ) {
       console.log("GENERIC: " + message.response + " " + message.error + " " + message.msgId);
     } else {
@@ -61,11 +61,11 @@ var assign_hooks = function() {
     var cockpit_message = sdk.build_config_cockpit_message("UW Generic", ["UW Elementary Edition"], ["UW Megane"], ["UW Radio"], "UW Standard", ["UW Simply Safe"]);
 
     // Arms
-    var armsArray = [];    
+    var armsArray = [];
     // Our arms support 1 weapons each.
     armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-L", "UW Standard", [sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB")], ["UW Simply Safe"]));
     armsArray.push(sdk.make_arm("UW Weapon Mount", "ARMS-UNIV-R", "UW Standard", [sdk.make_weapon("UW Saw", "WEPN-UNIV-O", "", "UW BB")], ["UW Simply Safe"]));
-    
+
     var arm_messages = sdk.build_config_arm_messages(armsArray);
 
     // Legs
@@ -141,10 +141,10 @@ var ai_logic = function(mechState) {
     sdk.fire_weapon(mechState.weapons[0]);
     sdk.reload_weapon(mechState.weapons[0]);
     sdk.idle_weapon(mechState.weapons[0]);
-  
+
   } catch(err) {
     console.log("ERROR: " + err.stack);
-  }  
+  }
   query_wm();
 }
 
@@ -159,7 +159,7 @@ var message_code_to_string = function(code) {
 
 assign_hooks();
 
-sdk.connect(4000, '127.0.0.1', 'username', 'password');
+sdk.connect(4000, '127.0.0.1', 'username');
 
 setTimeout(function() {
 return process.exit(0);

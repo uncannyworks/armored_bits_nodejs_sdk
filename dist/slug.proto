@@ -308,9 +308,8 @@ message ServerCommunicationMessage {
 }
 
 message SlugActionLoginRequest {
-  required string gameId   = 1;
-  required string slugId   = 2;
-  required string userName = 3;
+  required string authId   = 1;
+  required string userName = 2;
 }
 
 // empty message
