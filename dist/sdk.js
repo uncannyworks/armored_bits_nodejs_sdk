@@ -487,18 +487,15 @@ var AbSdk = function() {
 
   /**
    * Creates TCP Connection
-   * @param {string} port - Connection port.
-   * @param {string} ip - Connection IP Address.
    * @param {string} username - Authentication User Name.
-   * @param {string} password - Authentication Password.
    */
-  this.connect = function(port, ip, username) {
+  this.connect = function(username) {
     var sdk = this;
 
     client = new net.Socket();
     client.buffer = new Buffer([]);
 
-    client.connect(port, ip, function() {
+    client.connect(process.env.SERVER_PORT, process.env.SERVER_IP, function() {
       client.setNoDelay(true);
     });
 

@@ -159,7 +159,7 @@ var message_code_to_string = function(code) {
 
 assign_hooks();
 
-sdk.connect(4000, '127.0.0.1', 'username');
+sdk.connect('username');
 
 setTimeout(function() {
 return process.exit(0);
