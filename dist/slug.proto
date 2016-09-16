@@ -210,9 +210,10 @@ message SlugQueryGyroMessage {
 }
 
 message SlugQueryLegMessage {
-  required int32 index                 = 1;
-  required int32 state                 = 2;
-  required SlugQueryArmorMessage armor = 3;
+  required SlugQueryLocationMessage location = 1;
+  required int32 index                 = 2;
+  required int32 state                 = 3;
+  required SlugQueryArmorMessage armor = 4;
 }
 
 message SlugQueryReactorMessage {
